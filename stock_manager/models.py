@@ -46,8 +46,9 @@ class Admin(models.Model):
 class Item(models.Model):
     sku = models.CharField(primary_key=True, unique=True, editable=True, max_length=100)
     description = models.CharField(max_length=250)
-    retail_price = models.DecimalField(max_digits=10, decimal_places=2)
+    purchase_price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity = models.IntegerField(validators=[MinValueValidator(0)])
+    expiry_date = models.DateField(null=True, blank=True)
     last_updated = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)  # Soft-delete flag
 
@@ -56,14 +57,14 @@ class Item(models.Model):
 
     def save(self, *args, **kwargs):
         """
-        Coerce retail_price to a Decimal with 2 decimal places and validate.
+        Coerce purchase_price to a Decimal with 2 decimal places and validate.
         This handles Decimal representations that may use scientific notation
         (e.g. '0E-2') by converting to a fixed-point string before regex check.
         """
         try:
-            dec = Decimal(self.retail_price)
+            dec = Decimal(self.purchase_price)
         except (InvalidOperation, TypeError, ValueError):
-            raise ValueError("Retail price must be a valid number.")
+            raise ValueError("Purchase price must be a valid number.")
 
         # Quantize to two decimal places using HALF_UP rounding
         dec = dec.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
@@ -72,10 +73,10 @@ class Item(models.Model):
         dec_str = format(dec, 'f')
         if not re.match(r"^\d+(\.\d{1,2})?$", dec_str):
             raise ValueError(
-                "Retail price must be a valid number with up to 2 decimal places."
+                "Purchase price must be a valid number with up to 2 decimal places."
             )
 
-        self.retail_price = dec
+        self.purchase_price = dec
         super().save(*args, **kwargs)
 
 

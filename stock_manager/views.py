@@ -349,7 +349,7 @@ def submit_transfer_request(request):
                             "id",
                             "item__sku",
                             "item__description",
-                            "item__retail_price",
+                            "item__purchase_price",
                             "quantity",
                         )
                     ),

@@ -32,15 +32,15 @@ def sanitize_price(value, *, default="0.00") -> Decimal:
     try:
         d = Decimal(candidate)
     except (InvalidOperation, ValueError) as e:
-        raise ValueError(f"Invalid retail price value: {value!r}") from e
+        raise ValueError(f"Invalid purchase price value: {value!r}") from e
 
     # Reject NaN or infinite values which can silently pass through Decimal()
     try:
         if d.is_nan() or d.is_infinite():
-            raise ValueError(f"Invalid retail price value (NaN/Infinite): {value!r}")
+            raise ValueError(f"Invalid purchase price value (NaN/Infinite): {value!r}")
     except Exception:
         # Some Decimal subclasses or unusual inputs may not have these methods; re-raise as generic ValueError
-        raise ValueError(f"Invalid retail price value: {value!r}")
+        raise ValueError(f"Invalid purchase price value: {value!r}")
 
     d = d.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     return d
@@ -104,8 +104,8 @@ class SpreadsheetTools:
         # Create the 'Warehouse Stock' sheet
         item_sheet = workbook.active
         item_sheet.title = "Warehouse Stock"
-        item_fields = ["sku", "description", "retail_price", "quantity"]
-        item_header = ["SKU", "Description", "Retail Price", "Quantity"]
+        item_fields = ["sku", "description", "purchase_price", "quantity", "expiry_date"]
+        item_header = ["SKU", "Description", "Purchase Price", "Quantity", "Expiry Date"]
         item_sheet.append(item_header)
         for item in Item.objects.filter(is_active=True).only(*item_fields):
             row_data = [getattr(item, field, "") for field in item_fields]
@@ -118,14 +118,14 @@ class SpreadsheetTools:
             "shop_user__username",
             "item__sku",
             "item__description",
-            "item__retail_price",
+            "item__purchase_price",
             "quantity",
         ]
         shop_item_header = [
             "Shop User",
             "SKU",
             "Description",
-            "Retail Price",
+            "Purchase Price",
             "Quantity",
         ]
         shop_item_sheet.append(shop_item_header)
@@ -221,14 +221,15 @@ class SpreadsheetTools:
         item_field_mapping = {
             "SKU": "sku",
             "Description": "description",
-            "Retail Price": "retail_price",
+            "Purchase Price": "purchase_price",
             "Quantity": "quantity",
+            "Expiry Date": "expiry_date",
         }
         shop_item_field_mapping = {
             "Shop User": "shop_user__username",
             "SKU": "item__sku",
             "Description": "item__description",
-            "Retail Price": "item__retail_price",
+            "Purchase Price": "item__purchase_price",
             "Quantity": "quantity",
         }
         excel_item_skus = set()
@@ -261,7 +262,7 @@ class SpreadsheetTools:
                     ]
                     if not all(
                         col in headers
-                        for col in ["SKU", "Description", "Retail Price", "Quantity"]
+                        for col in ["SKU", "Description", "Purchase Price", "Quantity"]
                     ):
                         logger.warning(
                             "Default headers could not be mapped. Consulting custom mappings..."
@@ -275,8 +276,8 @@ class SpreadsheetTools:
                             for i, value in enumerate(row)
                             if headers[i] in item_field_mapping
                         }
-                        if "retail_price" in data:
-                            data["retail_price"] = sanitize_price(data["retail_price"])
+                        if "purchase_price" in data:
+                            data["purchase_price"] = sanitize_price(data["purchase_price"])
                         sku = data.get("sku")
                         if not sku:
                             continue
@@ -321,7 +322,7 @@ class SpreadsheetTools:
                         for col in [
                             "SKU",
                             "Description",
-                            "Retail Price",
+                            "Purchase Price",
                             "Quantity",
                             "Shop User",
                         ]
@@ -360,7 +361,7 @@ class SpreadsheetTools:
                             item = Item.objects.get(sku=item_sku)
                         except Item.DoesNotExist:
                             # Provide defaults for required fields
-                            orig_rp = raw_data.get("item__retail_price", "0.00")
+                            orig_rp = raw_data.get("item__purchase_price", "0.00")
                             try:
                                 rp = sanitize_price(orig_rp)
                             except Exception:
@@ -373,26 +374,26 @@ class SpreadsheetTools:
 
                             item_defaults = {
                                 "description": raw_data.get("item__description", ""),
-                                "retail_price": rp,
+                                "purchase_price": rp,
                                 "quantity": raw_data.get("quantity", 0) or 0,
                                 "is_active": False,
                             }
 
-                            # Ensure retail_price is a Decimal with 2dp to satisfy model save()
+                            # Ensure purchase_price is a Decimal with 2dp to satisfy model save()
                             try:
-                                if not isinstance(item_defaults["retail_price"], Decimal):
-                                    item_defaults["retail_price"] = Decimal(item_defaults["retail_price"])
-                                item_defaults["retail_price"] = item_defaults["retail_price"].quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                                if not isinstance(item_defaults["purchase_price"], Decimal):
+                                    item_defaults["purchase_price"] = Decimal(item_defaults["purchase_price"])
+                                item_defaults["purchase_price"] = item_defaults["purchase_price"].quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
                             except Exception as ex:
                                 logger.error(
-                                    "Failed to coerce retail_price for SKU %s (value=%r): %s",
+                                    "Failed to coerce purchase_price for SKU %s (value=%r): %s",
                                     item_sku,
-                                    item_defaults.get("retail_price"),
+                                    item_defaults.get("purchase_price"),
                                     ex,
                                     exc_info=True,
                                 )
                                 # As a last resort, set to 0.00
-                                item_defaults["retail_price"] = Decimal("0.00")
+                                item_defaults["purchase_price"] = Decimal("0.00")
 
                             logger.debug("Creating Item with defaults for SKU %s: %r", item_sku, item_defaults)
                             try:
@@ -414,13 +415,13 @@ class SpreadsheetTools:
                         item_updated = False
                         shop_item_updated = False
                         for key, value in raw_data.items():
-                            # Normalize nested item fields (e.g., item__retail_price)
-                            if key == "item__retail_price":
+                            # Normalize nested item fields (e.g., item__purchase_price)
+                            if key == "item__purchase_price":
                                 try:
                                     value = sanitize_price(value)
                                 except Exception as exc:
                                     logger.warning(
-                                        "Skipping invalid retail_price for SKU %s: %r (%s)",
+                                        "Skipping invalid purchase_price for SKU %s: %r (%s)",
                                         item_sku,
                                         value,
                                         exc,
@@ -431,7 +432,7 @@ class SpreadsheetTools:
                                             skipped_skus.append(item_sku)
                                     except Exception:
                                         pass
-                                    # Don't assign an invalid retail_price to the model; skip this field
+                                    # Don't assign an invalid purchase_price to the model; skip this field
                                     continue
                             if key.startswith("item__"):
                                 field = key.split("__", 1)[1]

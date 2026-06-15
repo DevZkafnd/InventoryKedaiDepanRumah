@@ -13,17 +13,17 @@ class UserSerializer(serializers.ModelSerializer):
 class ItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
-        fields = ["sku", "description", "retail_price", "quantity"]
+        fields = ["sku", "description", "purchase_price", "quantity", "expiry_date"]
 
     def validate_quantity(self, value):
         if not re.match(r"^\d+$", str(value)):
             raise serializers.ValidationError("Quantity must be a valid integer.")
         return int(value)
 
-    def validate_retail_price(self, value):
+    def validate_purchase_price(self, value):
         if not re.match(r"^\d+(\.\d{1,2})?$", str(value)):
             raise serializers.ValidationError(
-                "Retail price must be a valid price (2 decimal places max)."
+                "Purchase price must be a valid price (2 decimal places max)."
             )
         return float(value)
 

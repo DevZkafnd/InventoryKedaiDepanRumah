@@ -372,6 +372,24 @@
         .qty-ok   { background: #dcfce7; color: #15803d; }
         .qty-low  { background: #fef3c7; color: #b45309; }
         .qty-zero { background: #fee2e2; color: #dc2626; }
+        /* ── EXPIRING ITEM STYLE ── */
+        .expiring-row td {
+            background-color: #fee2e2 !important;
+            border: 2px solid #dc3545 !important;
+            color: white !important;
+        }
+        .expiring-row .price-text {
+            color: white !important;
+        }
+        .expiring-row .sku-badge {
+            background-color: #fca5a5 !important;
+            color: #dc2626 !important;
+            border-color: #dc2626 !important;
+        }
+        .expiring-row .qty-badge {
+            background-color: #fca5a5 !important;
+            color: #dc2626 !important;
+        }
 
         /* ── FORM INPUTS IN TABLE ───────────────────────────── */
         .data-table input.form-control {
@@ -444,7 +462,7 @@
         /* ── ADD ITEM FORM ──────────────────────────────────── */
         .add-form-grid {
             display: grid;
-            grid-template-columns: 1fr 2fr 1fr 1fr auto;
+            grid-template-columns: 1fr 2fr 1fr 1fr 1fr auto;
             gap: 10px;
             align-items: end;
         }
@@ -569,6 +587,17 @@
 <!-- ── MAIN ────────────────────────────────────────────────── -->
 <div class="main-wrapper">
 
+    <!-- Expiry Notification -->
+    <div class="section-card" id="expiry-notification" style="display: none; background: #fee2e2; border: 2px solid #dc3545;">
+        <div class="section-header">
+            <h2 class="section-title">
+                <span class="icon-badge icon-badge-red"><i class="bi bi-exclamation-triangle"></i></span>
+                Items Nearing Expiry
+            </h2>
+        </div>
+        <div class="section-body" id="expiry-items-list"></div>
+    </div>
+
     <!-- Stok Gudang -->
     <div class="section-card">
         <div class="section-header">
@@ -602,9 +631,9 @@
                         <tr>
                             <th onclick="sortTable(1,'sku')">SKU <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
                             <th onclick="sortTable(1,'description')">Deskripsi <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
-                            <th onclick="sortTable(1,'retail_price')">Harga Jual <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
+                            <th onclick="sortTable(1,'purchase_price')">Harga Beli <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
+                            <th onclick="sortTable(1,'expiry_date')">Tanggal Kadaluarsa <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
                             <th onclick="sortTable(1,'quantity')">Stok <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
-                            <th id="whXferQnt">Jml Transfer</th>
                             <th id="whActions">Aksi</th>
                         </tr>
                     </thead>
@@ -641,7 +670,7 @@
                         <tr>
                             <th onclick="sortTable(2,'item__sku')">SKU <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
                             <th onclick="sortTable(2,'item__description')">Deskripsi <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
-                            <th onclick="sortTable(2,'item__retail_price')">Harga Jual <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
+                            <th onclick="sortTable(2,'item__purchase_price')">Harga Beli <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
                             <th onclick="sortTable(2,'quantity')">Jumlah <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
                         </tr>
                     </thead>
@@ -673,8 +702,12 @@
                     <input type="text" id="description" placeholder="Nama / deskripsi barang" class="form-control">
                 </div>
                 <div>
-                    <div class="form-label-sm">Harga Jual (Rp)</div>
-                    <input type="number" step="0.01" min="0" id="retail_price" placeholder="0.00" class="form-control">
+                    <div class="form-label-sm">Harga Beli (Rp)</div>
+                    <input type="number" step="0.01" min="0" id="purchase_price" placeholder="0.00" class="form-control">
+                </div>
+                <div>
+                    <div class="form-label-sm">Tanggal Kadaluarsa</div>
+                    <input type="date" id="expiry_date" class="form-control">
                 </div>
                 <div>
                     <div class="form-label-sm">Jumlah Stok</div>
@@ -689,46 +722,7 @@
         </div>
     </div>
 
-    <!-- Transfer Menunggu -->
-    <div id="transfersPendingSection" class="section-card">
-        <div class="section-header">
-            <h2 class="section-title">
-                <span class="icon-badge icon-badge-red"><i class="bi bi-arrow-left-right"></i></span>
-                Transfer Menunggu
-            </h2>
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-                <div class="search-wrap">
-                    <i class="bi bi-search"></i>
-                    <input type="text" id="searchBox3" class="search-input" placeholder="Cari transfer..." onkeyup="search(3, this.value)">
-                </div>
-                <button id="refreshTransfersPending" class="btn btn-ghost btn-sm">
-                    <i class="bi bi-arrow-clockwise me-1"></i>Perbarui
-                </button>
-                <button id="submitTransferRequest" class="btn btn-accent btn-sm d-none">
-                    <i class="bi bi-send me-1"></i>Kirim Permintaan
-                </button>
-            </div>
-        </div>
-        <div class="section-body p-0">
-            <div class="table-responsive">
-                <table class="data-table xfersPendingTable">
-                    <thead>
-                        <tr>
-                            <th onclick="sortTable(3,'shop_user__username')">Pengguna Toko <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
-                            <th onclick="sortTable(3,'item__sku')">SKU <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
-                            <th onclick="sortTable(3,'item__description')">Deskripsi <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
-                            <th onclick="sortTable(3,'quantity')">Jumlah <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="itemTable3">
-                        <tr><td colspan="5" class="empty-state"><i class="bi bi-inbox"></i>Tidak ada transfer menunggu.</td></tr>
-                    </tbody>
-                </table>
-            </div>
-            <div id="paginationControls3" class="d-flex justify-content-center py-3"></div>
-        </div>
-    </div>
+
 
     <!-- Data Stok (Upload/Download) -->
     <div id="dlStockSection" class="section-card">
@@ -835,6 +829,16 @@
     /* ── Format harga Rupiah ── */
     const fmtRp = (v) => 'Rp ' + parseFloat(v).toLocaleString('id-ID', { minimumFractionDigits:0, maximumFractionDigits:2 });
 
+    /* ── Check if item is expiring (within 48 hours) ── */
+    const isExpiring = (expiryDateStr) => {
+        if (!expiryDateStr) return false;
+        const expiryDate = new Date(expiryDateStr + 'T00:00:00');
+        const now = new Date();
+        const diffMs = expiryDate - now;
+        const diffHours = diffMs / (1000 * 60 * 60);
+        return diffHours <= 48 && diffHours >= -24; // Within 48 hours before or 24 hours after (already expired)
+    };
+
     /* ── Qty badge ── */
     const qtyBadge = (qty) => {
         const n = parseInt(qty);
@@ -845,9 +849,7 @@
     const fetchItems = async (tableNum) => {
         try {
             const g = window.currentPageGlobals[tableNum-1];
-            let apiUrl = tableNum===1 ? '/api/items/' : tableNum===2 ? '/api/shop_items/' : '/api/transfer_items/';
-            if (tableNum===3 && window.userGroups?.includes('shop_users'))
-                apiUrl += `?shop_user_username=${window.loggedInUsername}`;
+            let apiUrl = tableNum===1 ? '/api/items/' : '/api/shop_items/';
             const sep = apiUrl.includes('?') ? '&' : '?';
             apiUrl += `${sep}page=${g.page}&page_size=${window.recordsPerPage}&search=${encodeURIComponent(g.search)}`;
             if (g.sort) apiUrl += `&ordering=${g.order==='asc'?'':'-'}${g.sort}`;
@@ -862,8 +864,28 @@
                 // Now empty and rebuild
                 $tb.empty().removeClass('loading');
                 
+                // Check for expiring items and show notification
+                if (tableNum === 1) {
+                    const expiringItems = data.results.filter(item => isExpiring(item.expiry_date));
+                    if (expiringItems.length > 0) {
+                        $('#expiry-notification').show();
+                        const expiryList = expiringItems.map(item => 
+                            `<div style="margin: 8px 0; padding: 8px; background: white; border-radius: 8px;">
+                                <strong>${item.sku} - ${item.description}</strong>
+                                <br>
+                                Expiry Date: ${item.expiry_date}
+                                <br>
+                                Quantity: ${item.quantity}
+                            </div>`
+                        ).join('');
+                        $('#expiry-items-list').html(expiryList);
+                    } else {
+                        $('#expiry-notification').hide();
+                    }
+                }
+                
                 if (!data.results.length) {
-                    const cols = tableNum===1 ? 6 : tableNum===2 ? 4 : 5;
+                    const cols = tableNum===1 ? 6 : 4;
                     $tb.append(`<tr><td colspan="${cols}" class="empty-state"><i class="bi bi-inbox"></i>Tidak ada data ditemukan.</td></tr>`);
                     setupPagination(tableNum, data);
                     return;
@@ -878,45 +900,30 @@
                             ? `<input type="number" min="0" value="${item.quantity}" class="form-control wh_editable-field" data-sku="${item.sku}" data-field="quantity" style="width:90px">`
                             : qtyBadge(item.quantity);
                         const priceField = isMgr
-                            ? `<input type="number" min="0" step="0.01" value="${item.retail_price}" class="form-control wh_editable-field" data-sku="${item.sku}" data-field="retail_price" style="width:110px">`
-                            : `<span class="price-text">${fmtRp(item.retail_price)}</span>`;
+                            ? `<input type="number" min="0" step="0.01" value="${item.purchase_price}" class="form-control wh_editable-field" data-sku="${item.sku}" data-field="purchase_price" style="width:110px">`
+                            : `<span class="price-text">${fmtRp(item.purchase_price)}</span>`;
                         const descField = isMgr
                             ? `<input type="text" value="${item.description}" class="form-control wh_editable-field" data-sku="${item.sku}" data-field="description">`
                             : item.description;
-                        const xferField = `<input type="number" min="0" class="form-control xferQntField wh_editable-field" ${window.editLock?'disabled':''} value="" placeholder="Jml unit" data-sku="${item.sku}" data-field="xfer_qnt" style="width:100px">`;
-                        row = `<tr>
+                        const expiryField = isMgr
+                            ? `<input type="date" value="${item.expiry_date || ''}" class="form-control wh_editable-field" data-sku="${item.sku}" data-field="expiry_date" style="width:150px">`
+                            : `${item.expiry_date || '-'}`;
+                        const rowClass = isExpiring(item.expiry_date) ? 'expiring-row' : '';
+                        row = `<tr class="${rowClass}">
     <td><span class="sku-badge">${item.sku}</span></td>
     <td>${descField}</td>
     <td>${priceField}</td>
+    <td>${expiryField}</td>
     <td>${qtyField}</td>
-    ${isShop ? `<td>${xferField}</td>` : ''}
     ${isMgr  ? `<td class="actions"></td>` : ''}
 </tr>`;
                     } else if (tableNum === 2) {
-                        row = `<tr>
+                        const rowClass = isExpiring(item.item.expiry_date) ? 'expiring-row' : '';
+                        row = `<tr class="${rowClass}">
     <td><span class="sku-badge">${item.item.sku}</span></td>
     <td>${item.item.description}</td>
-    <td><span class="price-text">${fmtRp(item.item.retail_price)}</span></td>
+    <td><span class="price-text">${fmtRp(item.item.purchase_price)}</span></td>
     <td>${qtyBadge(item.quantity)}</td>
-</tr>`;
-                    } else if (tableNum === 3) {
-                        const hlClass = item.ordered && window.userGroups?.includes('shop_users') ? 'highlight-ordered' : '';
-                        const su = item.shop_user?.username || window.loggedInUsername;
-                        setXferVals(su, item.item.sku, item.quantity);
-                        const statusBadge = item.ordered
-                            ? `<span class="badge bg-warning text-dark ms-1" style="font-size:.7rem">Dikirim</span>`
-                            : '';
-                        row = `<tr class="${hlClass}" data-ordered="${item.ordered}" data-sku="${item.item.sku}" data-quantity="${item.quantity}">
-    ${window.userGroups?.includes('managers') ? `<td><span class="badge bg-light text-dark border">${su}</span></td>` : ''}
-    <td><span class="sku-badge">${item.item.sku}</span></td>
-    <td>${item.item.description}${statusBadge}</td>
-    <td>${window.userGroups?.includes('managers')
-        ? `<input class="form-control" type="number" min="0" value="${getXferVals(su,item.item.sku)}" id="quantity3-${item.item.sku}" data-shop_user_id="${item.shop_user.username}" style="width:90px">`
-        : `<span class="qty-badge qty-ok">${getXferVals(su,item.item.sku)}</span>`}</td>
-    <td class="actions d-flex gap-1">
-        ${window.userGroups?.includes('managers') ? `<button onclick="completeTransfer('${item.item.sku}','${su}','false')" class="btn btn-primary-custom btn-sm" id="dispatchButton-${item.item.sku}"><i class="bi bi-check2-circle me-1"></i>Kirim</button>` : ''}
-        <button ${!window.userGroups?.includes('managers') && item.ordered ? 'disabled' : ''} onclick="completeTransfer('${item.item.sku}','${su}','true')" class="btn btn-danger-custom btn-sm" id="deleteButton-${item.item.sku}"><i class="bi bi-x-circle me-1"></i>Batal</button>
-    </td>
 </tr>`;
                     }
                     $tb.append(row);
@@ -954,20 +961,26 @@
     };
 
     const addItem = () => {
-        const rp = $('#retail_price').val();
-        if (!/^\d+(\.\d{1,2})?$/.test(rp)) { alert('Harga jual harus berupa angka valid dengan maksimal 2 desimal.'); return; }
+        const rp = $('#purchase_price').val();
+        if (!/^\d+(\.\d{1,2})?$/.test(rp)) { alert('Harga beli harus berupa angka valid dengan maksimal 2 desimal.'); return; }
         $.ajax({
             url: '/api/items/', type: 'POST', contentType: 'application/json',
             headers: { 'X-CSRFToken': getCSRFToken() },
-            data: JSON.stringify({ sku:$('#sku').val(), description:$('#description').val(), retail_price:rp, quantity:$('#quantity').val() }),
-            success: () => { fetchItems(1); $('#sku,#description,#retail_price,#quantity').val(''); },
+            data: JSON.stringify({ 
+                sku:$('#sku').val(), 
+                description:$('#description').val(), 
+                purchase_price:rp, 
+                expiry_date:$('#expiry_date').val(),
+                quantity:$('#quantity').val() 
+            }),
+            success: () => { fetchItems(1); $('#sku,#description,#purchase_price,#expiry_date,#quantity').val(''); },
             error: xhr => alert(xhr.responseJSON?.detail || 'Gagal menambah barang.')
         });
     };
 
     const updateItem = (tableNum, sku, fieldName, value) => {
         if (tableNum===1) {
-            if (fieldName==='retail_price' && !/^\d+(\.\d{1,2})?$/.test(value)) { alert('Harga jual harus berupa angka valid dengan maksimal 2 desimal.'); return; }
+            if (fieldName==='purchase_price' && !/^\d+(\.\d{1,2})?$/.test(value)) { alert('Harga beli harus berupa angka valid dengan maksimal 2 desimal.'); return; }
             $.ajax({
                 url: `/api/items/${encodeURIComponent(sku)}/`, type: 'PUT', contentType: 'application/json',
                 headers: { 'X-CSRFToken': getCSRFToken() },
