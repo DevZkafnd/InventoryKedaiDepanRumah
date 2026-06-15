@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Inventory Kedai Depan Rumah</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <style>
+        :root {
+            --primary:       #1a6b3c;
+            --primary-dark:  #0f4526;
+            --primary-light: #e8f5ee;
+            --accent:        #f5a623;
+            --accent-dark:   #d4891a;
+            --danger:        #dc3545;
+            --danger-dark:   #a71d2a;
+            --surface:       #ffffff;
+            --surface-2:     #f8fafb;
+            --surface-3:     #eef2f7;
+            --border:        #dee2e6;
+            --text-main:     #1a202c;
+            --text-muted:    #6c757d;
+            --text-light:    #adb5bd;
+            --shadow-sm:     0 1px 3px rgba(0,0,0,.08);
+            --shadow-md:     0 4px 16px rgba(0,0,0,.10);
+            --shadow-lg:     0 8px 32px rgba(0,0,0,.12);
+            --radius:        12px;
+            --radius-sm:     8px;
+            --radius-xs:     6px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            color: var(--text-main);
+            padding-top: 64px;
+            padding-bottom: 40px;
+        }
+
+        /* ── TOPBAR ─────────────────────────────────────────── */
+        .topbar {
+            background: #1a6b3c;
+            padding: 0 28px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,.18);
+        }
+        .topbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        .topbar-logo {
+            width: 38px;
+            height: 38px;
+            transition: transform .5s ease;
+        }
+        .topbar-logo:hover { transform: rotate(360deg); }
+        .topbar-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.2;
+        }
+        .topbar-subtitle {
+            font-size: .68rem;
+            color: rgba(255,255,255,.65);
+            font-weight: 400;
+        }
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .user-chip {
+            background: rgba(255,255,255,.15);
+            border: 1px solid rgba(255,255,255,.3);
+            border-radius: 50px;
+            padding: 5px 14px;
+            color: #fff;
+            font-size: .82rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .user-chip a {
+            color: rgba(255,255,255,.7);
+            font-size: .72rem;
+            text-decoration: none;
+            margin-left: 2px;
+        }
+        .user-chip a:hover { color: #ffd700; }
+
+        /* ── BUTTONS ────────────────────────────────────────── */
+        .btn-auth {
+            background: #f5a623;
+            color: #fff;
+            border: none;
+            padding: 7px 20px;
+            font-size: .85rem;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: background .2s, transform .15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-auth:hover { background: #d4891a; transform: translateY(-1px); }
+
+        .btn-primary-custom {
+            background: #1a6b3c;
+            color: #fff;
+            border: none;
+            padding: 7px 16px;
+            font-size: .85rem;
+            font-weight: 600;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: background .2s, transform .15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-primary-custom:hover { background: #0f4526; transform: translateY(-1px); }
+
+        .btn-accent {
+            background: #f5a623;
+            color: #fff;
+            border: none;
+            padding: 7px 16px;
+            font-size: .85rem;
+            font-weight: 600;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: background .2s, transform .15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-accent:hover { background: #d4891a; transform: translateY(-1px); }
+
+        .btn-ghost {
+            background: #fff;
+            color: #374151;
+            border: 1.5px solid #d1d5db;
+            padding: 6px 14px;
+            font-size: .83rem;
+            font-weight: 600;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: background .15s, border-color .15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-ghost:hover { background: #f3f4f6; border-color: #9ca3af; }
+
+        .btn-outline-custom {
+            background: #fff;
+            color: #1a6b3c;
+            border: 1.5px solid #1a6b3c;
+            padding: 7px 16px;
+            font-size: .85rem;
+            font-weight: 600;
+            border-radius: 7px;
+            cursor: pointer;
+            transition: all .2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-outline-custom:hover { background: #1a6b3c; color: #fff; }
+
+        .btn-danger-custom {
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            padding: 5px 12px;
+            font-size: .82rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background .2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-danger-custom:hover { background: #a71d2a; }
+        .btn-danger-custom:disabled { opacity: .5; cursor: not-allowed; }
+
+        .btn-sm-icon {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-size: .88rem;
+        }
+
+        /* ── MAIN WRAPPER ───────────────────────────────────── */
+        .main-wrapper {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 24px 20px;
+        }
+
+        /* ── SECTION CARD ───────────────────────────────────── */
+        .section-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.06);
+            margin-bottom: 20px;
+            overflow: visible;
+            border: 1px solid #e5e7eb;
+            min-height: 300px;
+        }
+        .section-header {
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            background: #fff;
+            border-radius: 12px 12px 0 0;
+        }
+        .section-title {
+            font-size: .95rem;
+            font-weight: 700;
+            color: #111827;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+        }
+        .icon-badge {
+            width: 30px;
+            height: 30px;
+            border-radius: 7px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .95rem;
+        }
+        .icon-badge-green  { background: #dcfce7; color: #16a34a; }
+        .icon-badge-amber  { background: #fef3c7; color: #d97706; }
+        .icon-badge-blue   { background: #dbeafe; color: #2563eb; }
+        .icon-badge-red    { background: #fee2e2; color: #dc2626; }
+        .section-body { 
+            padding: 18px 20px;
+            background: #fff;
+            min-height: 250px;
+        }
+
+        /* ── SEARCH BAR ─────────────────────────────────────── */
+        .search-wrap {
+            position: relative;
+            flex: 1;
+            min-width: 180px;
+        }
+        .search-wrap .bi-search {
+            position: absolute;
+            left: 11px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            font-size: .85rem;
+            pointer-events: none;
+        }
+        .search-input {
+            padding: 7px 12px 7px 34px;
+            border-radius: 7px;
+            border: 1.5px solid #d1d5db;
+            height: 36px;
+            font-size: .86rem;
+            width: 100%;
+            font-family: 'Inter', sans-serif;
+            transition: border-color .2s, box-shadow .2s;
+            outline: none;
+            background: #fff;
+        }
+        .search-input:focus {
+            border-color: #1a6b3c;
+            box-shadow: 0 0 0 3px rgba(26,107,60,.1);
+        }
+
+        /* ── TABLE — pure custom, no Bootstrap table classes ── */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .875rem;
+            background: #fff;
+            min-height: 200px;
+        }
+        .data-table thead th {
+            background: #f9fafb;
+            color: #6b7280;
+            font-weight: 600;
+            font-size: .75rem;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            padding: 10px 16px;
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+        }
+        .data-table thead th:hover { color: #1a6b3c; }
+        .data-table tbody td {
+            padding: 11px 16px;
+            border-bottom: 1px solid #f3f4f6;
+            vertical-align: middle;
+            color: #111827;
+            background: #fff;
+        }
+        .data-table tbody tr:last-child td { border-bottom: none; }
+        
+        /* Prevent table flashing during load */
+        .data-table tbody {
+            opacity: 1;
+            transition: opacity 0.15s ease-in-out;
+        }
+        .data-table tbody.loading {
+            opacity: 0.5;
+        }
+
+        .sku-badge {
+            background: #f3f4f6;
+            color: #1f2937;
+            font-family: 'Courier New', monospace;
+            font-size: .76rem;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 5px;
+            letter-spacing: .03em;
+            border: 1px solid #e5e7eb;
+        }
+        .price-text { font-weight: 600; color: #1a6b3c; }
+        .qty-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 38px;
+            padding: 3px 10px;
+            border-radius: 50px;
+            font-size: .78rem;
+            font-weight: 700;
+        }
+        .qty-ok   { background: #dcfce7; color: #15803d; }
+        .qty-low  { background: #fef3c7; color: #b45309; }
+        .qty-zero { background: #fee2e2; color: #dc2626; }
+
+        /* ── FORM INPUTS IN TABLE ───────────────────────────── */
+        .data-table input.form-control {
+            border: 1.5px solid #d1d5db;
+            border-radius: 6px;
+            font-size: .84rem;
+            padding: 4px 9px;
+            height: 32px;
+            font-family: 'Inter', sans-serif;
+            transition: border-color .2s, box-shadow .2s;
+            outline: none;
+            background: #fff;
+        }
+        .data-table input.form-control:focus {
+            border-color: #1a6b3c;
+            box-shadow: 0 0 0 3px rgba(26,107,60,.1);
+        }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+
+        /* ── TOGGLE SWITCH ──────────────────────────────────── */
+        .toggle-wrap {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: #f9fafb;
+            border: 1.5px solid #d1d5db;
+            border-radius: 50px;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-size: .8rem;
+            font-weight: 600;
+            color: #6b7280;
+            transition: all .2s;
+        }
+        .toggle-wrap.active { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+        .toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #d1d5db; transition: .3s; border-radius: 22px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 16px; width: 16px;
+            left: 3px; bottom: 3px;
+            background: white; transition: .3s; border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,.2);
+        }
+        input:checked + .slider { background: #dc2626; }
+        input:checked + .slider:before { transform: translateX(18px); }
+
+        /* ── MAINTENANCE ALERT ──────────────────────────────── */
+        .maintenance-banner {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #991b1b;
+            font-weight: 600;
+            font-size: .85rem;
+            margin: 12px 20px;
+        }
+
+        /* ── ADD ITEM FORM ──────────────────────────────────── */
+        .add-form-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 1fr auto;
+            gap: 10px;
+            align-items: end;
+        }
+        @media (max-width: 768px) { .add-form-grid { grid-template-columns: 1fr 1fr; } }
+        .form-label-sm {
+            font-size: .72rem;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: .05em;
+            margin-bottom: 4px;
+            display: block;
+        }
+        .add-form-grid input.form-control {
+            border: 1.5px solid #d1d5db;
+            border-radius: 7px;
+            font-size: .88rem;
+            padding: 7px 11px;
+            height: 38px;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: border-color .2s, box-shadow .2s;
+        }
+        .add-form-grid input.form-control:focus {
+            border-color: #1a6b3c;
+            box-shadow: 0 0 0 3px rgba(26,107,60,.1);
+        }
+
+        /* ── PAGINATION ─────────────────────────────────────── */
+        .pagination { gap: 3px; margin: 0; }
+        .page-link {
+            border-radius: 6px !important;
+            border: 1.5px solid #e5e7eb !important;
+            color: #1a6b3c !important;
+            font-size: .8rem !important;
+            font-weight: 600 !important;
+            padding: 5px 11px !important;
+            transition: all .15s !important;
+            background: #fff !important;
+        }
+        .page-link:hover { background: #f0fdf4 !important; border-color: #1a6b3c !important; }
+        .page-item.active .page-link { background: #1a6b3c !important; border-color: #1a6b3c !important; color: #fff !important; }
+
+        /* ── DATA ACTIONS ───────────────────────────────────── */
+        .data-actions-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 16px 20px;
+        }
+
+        /* ── FOOTER ─────────────────────────────────────────── */
+        .app-footer {
+            text-align: center;
+            color: #9ca3af;
+            font-size: .73rem;
+            padding: 16px;
+        }
+
+        /* ── EMPTY STATE ────────────────────────────────────── */
+        .empty-state {
+            text-align: center;
+            padding: 36px 20px;
+            color: #9ca3af;
+        }
+        .empty-state .bi { font-size: 2rem; opacity: .4; display: block; margin-bottom: 8px; }
+
+        /* ── TABLE RESPONSIVE — fix stacking context / overlay glitch ── */
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            /* Prevent creating a new stacking context that causes black/grey overlay */
+            transform: none;
+            will-change: auto;
+            position: relative;
+            z-index: 1;
+            background: #fff;
+        }
+
+        /* Clip rounded corners on section-card without overflow:hidden */
+        .section-card > .section-header:first-child {
+            border-radius: 12px 12px 0 0;
+        }
+        .section-card > *:last-child,
+        .section-card > .section-body:last-child,
+        .section-card > div:last-child {
+            border-radius: 0 0 12px 12px;
+        }
+
+        /* ── RESPONSIVE ─────────────────────────────────────── */
+        @media (max-width: 576px) {
+            .topbar-title { font-size: .9rem; }
+            .section-body { padding: 12px; }
+            .section-header { padding: 12px; }
+            .main-wrapper { padding: 12px; }
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- ── TOPBAR ──────────────────────────────────────────────── -->
+<header class="topbar">
+    <a class="topbar-brand" href="#">
+        <img src="{% static 'img/logo.svg' %}" alt="Logo" class="topbar-logo">
+        <div>
+            <div class="topbar-title">Kedai Depan Rumah</div>
+            <div class="topbar-subtitle">Sistem Manajemen Inventori</div>
+        </div>
+    </a>
+    <div class="topbar-right">
+        <div class="user-chip d-none" id="userChip">
+            <i class="bi bi-person-circle"></i>
+            <span id="userStatus"></span>
+        </div>
+        <a id="authLink" class="btn btn-auth btn-sm"></a>
+    </div>
+</header>
+
+<!-- ── MAIN ────────────────────────────────────────────────── -->
+<div class="main-wrapper">
+
+    <!-- Stok Gudang -->
+    <div class="section-card">
+        <div class="section-header">
+            <h2 class="section-title">
+                <span class="icon-badge icon-badge-green"><i class="bi bi-building"></i></span>
+                Stok Gudang
+            </h2>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="search-wrap">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="searchBox1" class="search-input" placeholder="Cari barang gudang..." onkeyup="search(1, this.value)">
+                </div>
+                <label id="updateModeSwitch" class="toggle-wrap d-none" title="Mode Pemeliharaan Gudang">
+                    <input type="checkbox" id="updateModeToggle" onchange="updateModeChangeHandler()">
+                    <span class="slider"></span>
+                    <span id="toggleLabel">Pemeliharaan</span>
+                </label>
+                <button id="refreshWarehouse" class="btn btn-ghost btn-sm d-none">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Perbarui
+                </button>
+            </div>
+        </div>
+        <div class="section-body p-0">
+            <div class="maintenance-banner d-none maintenanceMode mx-3 mt-3">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                Gudang sedang dalam pemeliharaan — transfer dinonaktifkan sementara.
+            </div>
+            <div class="table-responsive">
+                <table class="data-table warehouse-stock">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable(1,'sku')">SKU <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
+                            <th onclick="sortTable(1,'description')">Deskripsi <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
+                            <th onclick="sortTable(1,'retail_price')">Harga Jual <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
+                            <th onclick="sortTable(1,'quantity')">Stok <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
+                            <th id="whXferQnt">Jml Transfer</th>
+                            <th id="whActions">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemTable1">
+                        <tr><td colspan="6" class="empty-state"><i class="bi bi-inbox"></i>Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="paginationControls1" class="d-flex justify-content-center py-3"></div>
+        </div>
+    </div>
+
+    <!-- Stok Toko -->
+    <div class="section-card shop-stock">
+        <div class="section-header">
+            <h2 class="section-title">
+                <span class="icon-badge icon-badge-amber"><i class="bi bi-shop"></i></span>
+                Stok Toko Saya
+            </h2>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="search-wrap">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="searchBox2" class="search-input" placeholder="Cari barang toko..." onkeyup="search(2, this.value)">
+                </div>
+                <button id="refreshInventory" class="btn btn-ghost btn-sm">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Perbarui
+                </button>
+            </div>
+        </div>
+        <div class="section-body p-0">
+            <div class="table-responsive">
+                <table class="data-table shopStockTable">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable(2,'item__sku')">SKU <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
+                            <th onclick="sortTable(2,'item__description')">Deskripsi <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
+                            <th onclick="sortTable(2,'item__retail_price')">Harga Jual <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
+                            <th onclick="sortTable(2,'quantity')">Jumlah <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemTable2">
+                        <tr><td colspan="4" class="empty-state"><i class="bi bi-inbox"></i>Memuat data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="paginationControls2" class="d-flex justify-content-center py-3"></div>
+        </div>
+    </div>
+
+    <!-- Tambah Barang -->
+    <div id="addItemSection" class="section-card d-none">
+        <div class="section-header">
+            <h2 class="section-title">
+                <span class="icon-badge icon-badge-blue"><i class="bi bi-plus-circle"></i></span>
+                Tambah Barang Baru
+            </h2>
+        </div>
+        <div class="section-body">
+            <div class="add-form-grid">
+                <div>
+                    <div class="form-label-sm">SKU</div>
+                    <input type="text" id="sku" placeholder="Contoh: MIE-001" class="form-control">
+                </div>
+                <div>
+                    <div class="form-label-sm">Deskripsi</div>
+                    <input type="text" id="description" placeholder="Nama / deskripsi barang" class="form-control">
+                </div>
+                <div>
+                    <div class="form-label-sm">Harga Jual (Rp)</div>
+                    <input type="number" step="0.01" min="0" id="retail_price" placeholder="0.00" class="form-control">
+                </div>
+                <div>
+                    <div class="form-label-sm">Jumlah Stok</div>
+                    <input type="number" min="0" id="quantity" placeholder="0" class="form-control">
+                </div>
+                <div>
+                    <button id="addItem" class="btn btn-primary-custom w-100">
+                        <i class="bi bi-plus-lg me-1"></i>Tambah
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transfer Menunggu -->
+    <div id="transfersPendingSection" class="section-card">
+        <div class="section-header">
+            <h2 class="section-title">
+                <span class="icon-badge icon-badge-red"><i class="bi bi-arrow-left-right"></i></span>
+                Transfer Menunggu
+            </h2>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="search-wrap">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="searchBox3" class="search-input" placeholder="Cari transfer..." onkeyup="search(3, this.value)">
+                </div>
+                <button id="refreshTransfersPending" class="btn btn-ghost btn-sm">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Perbarui
+                </button>
+                <button id="submitTransferRequest" class="btn btn-accent btn-sm d-none">
+                    <i class="bi bi-send me-1"></i>Kirim Permintaan
+                </button>
+            </div>
+        </div>
+        <div class="section-body p-0">
+            <div class="table-responsive">
+                <table class="data-table xfersPendingTable">
+                    <thead>
+                        <tr>
+                            <th onclick="sortTable(3,'shop_user__username')">Pengguna Toko <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
+                            <th onclick="sortTable(3,'item__sku')">SKU <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
+                            <th onclick="sortTable(3,'item__description')">Deskripsi <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
+                            <th onclick="sortTable(3,'quantity')">Jumlah <i class="bi bi-arrow-down-up ms-1 opacity-50"></i></th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemTable3">
+                        <tr><td colspan="5" class="empty-state"><i class="bi bi-inbox"></i>Tidak ada transfer menunggu.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="paginationControls3" class="d-flex justify-content-center py-3"></div>
+        </div>
+    </div>
+
+    <!-- Data Stok (Upload/Download) -->
+    <div id="dlStockSection" class="section-card">
+        <div class="data-actions-bar">
+            <input type="file" id="uploadStockData" class="d-none" accept=".xlsx">
+            <button id="uploadStockDataButton" class="btn btn-outline-custom btn-sm d-none">
+                <i class="bi bi-upload me-1"></i>Unggah Data Stok (.xlsx)
+            </button>
+            <button id="downloadStockData" class="btn btn-outline-custom btn-sm d-none">
+                <i class="bi bi-download me-1"></i>Unduh Data Stok (.xlsx)
+            </button>
+        </div>
+    </div>
+
+</div><!-- /main-wrapper -->
+
+<footer class="app-footer">
+    Inventory Kedai Depan Rumah v1.0 &mdash; Lisensi GPLv3
+</footer>
+
+<script>
+(() => {
+    'use strict';
+
+    window.editLock = false;
+    window.recordsPerPage = 25;
+
+    const fetchAppConfig = () => {
+        return $.get('/api/app_config/', data => {
+            if (data.records_per_page) window.recordsPerPage = data.records_per_page;
+            window.allowUploadDeletions = !!data.allow_upload_deletions;
+        });
+    };
+
+    window.currentPageGlobals = [
+        { page:1, sort:'last_updated', order:'', search:'' },
+        { page:1, sort:'last_updated', order:'', search:'' },
+        { page:1, sort:'last_updated', order:'', search:'' }
+    ];
+
+    window.cache = { xfer_qnt: new Map() };
+    window.currentFetchRequests = { 1:null, 2:null, 3:null };
+
+    const getCSRFToken = () =>
+        document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1];
+
+    $.ajaxSetup({ beforeSend: (xhr) => xhr.setRequestHeader('X-CSRFToken', getCSRFToken()) });
+
+    const setEditLockStatus = (status) => {
+        if (window.userGroups && window.userGroups.includes('managers')) {
+            $.ajax({
+                url: '/api/set_edit_lock_status/', type: 'POST',
+                contentType: 'application/json',
+                headers: { 'X-CSRFToken': getCSRFToken() },
+                data: JSON.stringify({ edit_lock_status: status }),
+                success: response => {
+                    window.editLock = response.edit_lock;
+                    updateUIBasedOnEditLock();
+                    // Hanya fetch ulang tabel 1 karena edit lock hanya mempengaruhi gudang
+                    fetchItems(1);
+                }
+            });
+        }
+    };
+
+    const getEditLockStatus = () => new Promise((resolve, reject) => {
+        $.ajax({
+            url: '/api/get_edit_lock_status/', type: 'GET',
+            success: response => { window.editLock = response.edit_lock; updateUIBasedOnEditLock(); resolve(); },
+            error: xhr => { console.error('Edit lock fetch failed:', xhr.responseText); reject(xhr); }
+        });
+    });
+
+    const updatePageGlobals = (tableNum, page=null, sort=null, order=null, search=null) => {
+        if (page   !== null) window.currentPageGlobals[tableNum-1].page   = page;
+        if (sort   !== null) window.currentPageGlobals[tableNum-1].sort   = sort;
+        if (order  !== null) window.currentPageGlobals[tableNum-1].order  = order;
+        if (search !== null) window.currentPageGlobals[tableNum-1].search = search;
+        fetchItems(tableNum);
+    };
+
+    const search = (tableNum, query) => updatePageGlobals(tableNum, 1, null, null, query);
+
+    const sortTable = (tableNum, column) => {
+        const $t = $(`#itemTable${tableNum}`);
+        const cur = $t.data('sortOrder') || 'asc';
+        const next = cur === 'asc' ? 'desc' : 'asc';
+        $t.data('sortOrder', next).data('sortColumn', column);
+        updatePageGlobals(tableNum, 1, column, next, $(`#searchBox${tableNum}`).val());
+    };
+
+    const setXferVals = (u, sku, qty) => {
+        if (!window.cache.xfer_qnt.has(u)) window.cache.xfer_qnt.set(u, new Map());
+        window.cache.xfer_qnt.get(u).set(sku, qty);
+    };
+    const getXferVals = (u, sku) => window.cache.xfer_qnt.get(u)?.get(sku);
+    const deleteXferVals = (u, sku) => {
+        const m = window.cache.xfer_qnt;
+        if (!m.has(u)) return;
+        m.get(u).delete(sku);
+        if (m.get(u).size === 0) m.delete(u);
+    };
+
+    /* ── Format harga Rupiah ── */
+    const fmtRp = (v) => 'Rp ' + parseFloat(v).toLocaleString('id-ID', { minimumFractionDigits:0, maximumFractionDigits:2 });
+
+    /* ── Qty badge ── */
+    const qtyBadge = (qty) => {
+        const n = parseInt(qty);
+        const cls = n === 0 ? 'qty-zero' : n <= 10 ? 'qty-low' : 'qty-ok';
+        return `<span class="qty-badge ${cls}">${qty}</span>`;
+    };
+
+    const fetchItems = async (tableNum) => {
+        try {
+            const g = window.currentPageGlobals[tableNum-1];
+            let apiUrl = tableNum===1 ? '/api/items/' : tableNum===2 ? '/api/shop_items/' : '/api/transfer_items/';
+            if (tableNum===3 && window.userGroups?.includes('shop_users'))
+                apiUrl += `?shop_user_username=${window.loggedInUsername}`;
+            const sep = apiUrl.includes('?') ? '&' : '?';
+            apiUrl += `${sep}page=${g.page}&page_size=${window.recordsPerPage}&search=${encodeURIComponent(g.search)}`;
+            if (g.sort) apiUrl += `&ordering=${g.order==='asc'?'':'-'}${g.sort}`;
+
+            if (window.currentFetchRequests[tableNum]) window.currentFetchRequests[tableNum].abort();
+
+            const $tb = $(`#itemTable${tableNum}`);
+            // Add loading class instead of emptying immediately
+            $tb.addClass('loading');
+
+            const xhr = $.get(apiUrl, data => {
+                // Now empty and rebuild
+                $tb.empty().removeClass('loading');
+                
+                if (!data.results.length) {
+                    const cols = tableNum===1 ? 6 : tableNum===2 ? 4 : 5;
+                    $tb.append(`<tr><td colspan="${cols}" class="empty-state"><i class="bi bi-inbox"></i>Tidak ada data ditemukan.</td></tr>`);
+                    setupPagination(tableNum, data);
+                    return;
+                }
+                data.results.forEach(item => {
+                    let row = '';
+                    const isMgr  = window.userGroups?.includes('managers');
+                    const isShop = window.userGroups?.includes('shop_users');
+
+                    if (tableNum === 1) {
+                        const qtyField = isMgr
+                            ? `<input type="number" min="0" value="${item.quantity}" class="form-control wh_editable-field" data-sku="${item.sku}" data-field="quantity" style="width:90px">`
+                            : qtyBadge(item.quantity);
+                        const priceField = isMgr
+                            ? `<input type="number" min="0" step="0.01" value="${item.retail_price}" class="form-control wh_editable-field" data-sku="${item.sku}" data-field="retail_price" style="width:110px">`
+                            : `<span class="price-text">${fmtRp(item.retail_price)}</span>`;
+                        const descField = isMgr
+                            ? `<input type="text" value="${item.description}" class="form-control wh_editable-field" data-sku="${item.sku}" data-field="description">`
+                            : item.description;
+                        const xferField = `<input type="number" min="0" class="form-control xferQntField wh_editable-field" ${window.editLock?'disabled':''} value="" placeholder="Jml unit" data-sku="${item.sku}" data-field="xfer_qnt" style="width:100px">`;
+                        row = `<tr>
+    <td><span class="sku-badge">${item.sku}</span></td>
+    <td>${descField}</td>
+    <td>${priceField}</td>
+    <td>${qtyField}</td>
+    ${isShop ? `<td>${xferField}</td>` : ''}
+    ${isMgr  ? `<td class="actions"></td>` : ''}
+</tr>`;
+                    } else if (tableNum === 2) {
+                        row = `<tr>
+    <td><span class="sku-badge">${item.item.sku}</span></td>
+    <td>${item.item.description}</td>
+    <td><span class="price-text">${fmtRp(item.item.retail_price)}</span></td>
+    <td>${qtyBadge(item.quantity)}</td>
+</tr>`;
+                    } else if (tableNum === 3) {
+                        const hlClass = item.ordered && window.userGroups?.includes('shop_users') ? 'highlight-ordered' : '';
+                        const su = item.shop_user?.username || window.loggedInUsername;
+                        setXferVals(su, item.item.sku, item.quantity);
+                        const statusBadge = item.ordered
+                            ? `<span class="badge bg-warning text-dark ms-1" style="font-size:.7rem">Dikirim</span>`
+                            : '';
+                        row = `<tr class="${hlClass}" data-ordered="${item.ordered}" data-sku="${item.item.sku}" data-quantity="${item.quantity}">
+    ${window.userGroups?.includes('managers') ? `<td><span class="badge bg-light text-dark border">${su}</span></td>` : ''}
+    <td><span class="sku-badge">${item.item.sku}</span></td>
+    <td>${item.item.description}${statusBadge}</td>
+    <td>${window.userGroups?.includes('managers')
+        ? `<input class="form-control" type="number" min="0" value="${getXferVals(su,item.item.sku)}" id="quantity3-${item.item.sku}" data-shop_user_id="${item.shop_user.username}" style="width:90px">`
+        : `<span class="qty-badge qty-ok">${getXferVals(su,item.item.sku)}</span>`}</td>
+    <td class="actions d-flex gap-1">
+        ${window.userGroups?.includes('managers') ? `<button onclick="completeTransfer('${item.item.sku}','${su}','false')" class="btn btn-primary-custom btn-sm" id="dispatchButton-${item.item.sku}"><i class="bi bi-check2-circle me-1"></i>Kirim</button>` : ''}
+        <button ${!window.userGroups?.includes('managers') && item.ordered ? 'disabled' : ''} onclick="completeTransfer('${item.item.sku}','${su}','true')" class="btn btn-danger-custom btn-sm" id="deleteButton-${item.item.sku}"><i class="bi bi-x-circle me-1"></i>Batal</button>
+    </td>
+</tr>`;
+                    }
+                    $tb.append(row);
+                    if (tableNum===1 && window.userGroups?.includes('managers')) {
+                        $tb.find('tr:last .actions').append(
+                            `<button onclick="deleteItem('${item.sku}',1)" class="btn btn-danger-custom btn-sm btn-sm-icon" title="Hapus"><i class="bi bi-trash3"></i></button>`
+                        );
+                    }
+                });
+                setupPagination(tableNum, data);
+            }).fail(() => {
+                $tb.removeClass('loading');
+            });
+            window.currentFetchRequests[tableNum] = xhr;
+        } catch (e) { 
+            console.error('fetchItems error:', e);
+            $(`#itemTable${tableNum}`).removeClass('loading');
+        }
+    };
+
+    const setupPagination = (tn, data) => {
+        const $div = $(`#paginationControls${tn}`);
+        $div.empty();
+        const cur = data.current_page, total = data.total_pages;
+        if (total <= 1) return;
+        const start = Math.floor((cur-1)/5)*5+1;
+        const end   = Math.min(start+4, total);
+        let html = '<nav><ul class="pagination mb-0">';
+        if (cur > 5) html += `<li class="page-item"><a class="page-link" href="#" onclick="updatePageGlobals(${tn},${start-5},null,null,null);return false"><i class="bi bi-chevron-left"></i></a></li>`;
+        for (let i=start; i<=end; i++)
+            html += `<li class="page-item ${i===cur?'active':''}"><a class="page-link" href="#" onclick="updatePageGlobals(${tn},${i},null,null,null);return false">${i}</a></li>`;
+        if (end < total) html += `<li class="page-item"><a class="page-link" href="#" onclick="updatePageGlobals(${tn},${start+5},null,null,null);return false"><i class="bi bi-chevron-right"></i></a></li>`;
+        html += '</ul></nav>';
+        $div.append(html);
+    };
+
+    const addItem = () => {
+        const rp = $('#retail_price').val();
+        if (!/^\d+(\.\d{1,2})?$/.test(rp)) { alert('Harga jual harus berupa angka valid dengan maksimal 2 desimal.'); return; }
+        $.ajax({
+            url: '/api/items/', type: 'POST', contentType: 'application/json',
+            headers: { 'X-CSRFToken': getCSRFToken() },
+            data: JSON.stringify({ sku:$('#sku').val(), description:$('#description').val(), retail_price:rp, quantity:$('#quantity').val() }),
+            success: () => { fetchItems(1); $('#sku,#description,#retail_price,#quantity').val(''); },
+            error: xhr => alert(xhr.responseJSON?.detail || 'Gagal menambah barang.')
+        });
+    };
+
+    const updateItem = (tableNum, sku, fieldName, value) => {
+        if (tableNum===1) {
+            if (fieldName==='retail_price' && !/^\d+(\.\d{1,2})?$/.test(value)) { alert('Harga jual harus berupa angka valid dengan maksimal 2 desimal.'); return; }
+            $.ajax({
+                url: `/api/items/${encodeURIComponent(sku)}/`, type: 'PUT', contentType: 'application/json',
+                headers: { 'X-CSRFToken': getCSRFToken() },
+                data: JSON.stringify({ sku, [fieldName]: value }),
+                success: () => fetchItems(1),
+                error: xhr => alert(xhr.responseJSON?.detail || 'Gagal memperbarui.')
+            });
+        }
+    };
+
+    const deleteItem = (sku, tableNum) => {
+        if (!confirm(`Hapus barang "${sku}"? Tindakan ini tidak dapat dibatalkan.`)) return;
+        const url = tableNum===1 ? `/api/items/${encodeURIComponent(sku)}/` : `/api/shop_items/${encodeURIComponent(sku)}/`;
+        $.ajax({
+            url, type: 'DELETE', headers: { 'X-CSRFToken': getCSRFToken() },
+            success: () => fetchItems(tableNum),
+            error: xhr => {
+                let msg = 'Terjadi kesalahan.';
+                try { msg = xhr.responseJSON?.detail || JSON.parse(xhr.responseText)?.detail || msg; } catch(e){}
+                alert(msg);
+            }
+        });
+    };
+
+    const transferItem = (sku, xfer_qnt) => {
+        $.ajax({
+            url: '/api/transfer/', type: 'POST', contentType: 'application/json',
+            headers: { 'X-CSRFToken': getCSRFToken() },
+            data: JSON.stringify({ sku, transfer_quantity: xfer_qnt }),
+            success: () => fetchItems(3),
+            error: xhr => { alert(xhr.responseJSON?.detail || 'Gagal transfer.'); fetchItems(1); }
+        });
+    };
+
+    const submitTransferRequest = () => {
+        $.ajax({
+            url: '/api/submit-transfer-request/', type: 'POST', contentType: 'application/json',
+            headers: { 'X-CSRFToken': getCSRFToken() },
+            data: JSON.stringify({}),
+            success: () => fetchItems(3),
+            error: xhr => alert(xhr.responseJSON?.detail || 'Gagal mengirim permintaan.')
+        });
+    };
+
+    const completeTransfer = (sku, shop_user_id, cancel) => {
+        const quantity = getXferVals(shop_user_id, sku);
+        $.ajax({
+            url: '/api/complete-transfer/', type: 'POST', contentType: 'application/json',
+            headers: { 'X-CSRFToken': getCSRFToken() },
+            data: JSON.stringify({ sku, shop_user_id, quantity, cancel }),
+            success: () => [1,3].forEach(tn => fetchItems(tn)),
+            error: xhr => alert(xhr.responseJSON?.detail || 'Gagal.')
+        });
+        deleteXferVals(shop_user_id, sku);
+    };
+
+    const downloadStockData = () => { window.location.href = '/api/export_data/'; };
+
+    const uploadStockData = () => {
+        const file = document.getElementById('uploadStockData').files[0];
+        if (!file) { alert('Silakan pilih file untuk diunggah.'); return; }
+        if (window.allowUploadDeletions && !confirm('Peringatan: Sistem akan menghapus data yang tidak ada di file ini. Lanjutkan?')) return;
+        const fd = new FormData();
+        fd.append('file', file);
+        $.ajax({
+            url: '/api/import_data/', type: 'POST', data: fd, processData: false, contentType: false,
+            headers: { 'X-CSRFToken': getCSRFToken() },
+            success: data => {
+                let msg = data?.detail || 'Data stok berhasil diunggah.';
+                if (data?.skipped_skus?.length) msg += '\n\nSKU dilewati:\n' + data.skipped_skus.join(', ');
+                alert(msg); [1,2].forEach(tn => fetchItems(tn));
+            },
+            error: xhr => {
+                let msg = 'Gagal mengunggah data stok.';
+                try { msg = xhr.responseJSON?.detail || JSON.parse(xhr.responseText)?.detail || msg; } catch(e){}
+                alert(msg);
+            }
+        });
+    };
+
+    const attachQntChangeColorUpdateListener = () => {
+        [1,2,3].forEach(tn => {
+            $(`#itemTable${tn}`).on('input', 'input[type="number"]', function() {
+                $(this).css({ 'background-color':'#e8f5ee', 'border-color':'var(--primary)' });
+            });
+        });
+    };
+
+    const updateModeChangeHandler = () => {
+        const locked = $('#updateModeToggle').prop('checked');
+        $('#toggleLabel').text(locked ? 'Pemeliharaan ON' : 'Pemeliharaan');
+        $('#updateModeSwitch').toggleClass('active', locked);
+        setEditLockStatus(locked);
+    };
+
+    const tailor_dashboard = () => {
+        const g = window.userGroups;
+        if (g?.includes('managers')) {
+            setEditLockStatus(false);
+            $('.shop-stock').hide();
+            $('#addItemSection, #updateModeSwitch').removeClass('d-none');
+            $('#downloadStockData, #uploadStockData, #uploadStockDataButton').removeClass('d-none');
+        } else {
+            $('.shop-stock').show();
+            if (g?.includes('shop_users')) {
+                $("th:contains('Pengguna Toko')").hide();
+                $('#itemTable3 tr').each(function(){ $(this).find('td:first').hide(); });
+                $('#submitTransferRequest, #refreshWarehouse, #downloadStockData').removeClass('d-none');
+            }
+        }
+        if (!g?.includes('shop_users')) $('th#whXferQnt').hide();
+        if (g?.includes('shop_users'))  $('th#whActions').hide();
+    };
+
+    const checkAuthStatus = () => {
+        $.ajax({
+            url: '/api/auth/user/', method: 'GET', xhrFields: { withCredentials: true },
+            success: data => {
+                if (data.username) {
+                    $('#userStatus').html(`${data.username} &nbsp;<a id="change_pw_link" href="{% url 'password_change' %}"><i class="bi bi-key"></i></a>`);
+                    $('#userChip').removeClass('d-none');
+                    window.loggedInUsername = data.username;
+                    window.userGroups = data.groups;
+                    tailor_dashboard();
+                    // Ambil edit lock sekali, lalu fetch semua tabel
+                    getEditLockStatus().then(() => {
+                        [1,2,3].forEach(tn => fetchItems(tn));
+                    }).catch(() => {
+                        [1,2,3].forEach(tn => fetchItems(tn));
+                    });
+                    $('#authLink').html('<i class="bi bi-box-arrow-right me-1"></i>Keluar')
+                        .off('click').on('click', e => {
+                            e.preventDefault();
+                            $.ajax({
+                                url: '/accounts/logout/', type: 'POST',
+                                headers: { 'X-CSRFToken': getCSRFToken() },
+                                success: () => location.reload(),
+                                error: (x,s,err) => console.error('Logout gagal:', x.responseText)
+                            });
+                        });
+                } else {
+                    $('#authLink').attr('href','/accounts/login/').html('<i class="bi bi-box-arrow-in-right me-1"></i>Masuk');
+                }
+            },
+            error: () => {
+                $('#authLink').attr('href','/accounts/login/').html('<i class="bi bi-box-arrow-in-right me-1"></i>Masuk');
+            }
+        });
+    };
+
+    const updateUIBasedOnEditLock = () => {
+        $('#itemTable1 input, #itemTable1 button').prop('disabled', window.editLock);
+        $('#updateModeToggle').prop('checked', window.editLock);
+        $('.maintenanceMode').toggleClass('d-none', !window.editLock);
+        $('#updateModeSwitch').toggleClass('active', window.editLock);
+        $('#toggleLabel').text(window.editLock ? 'Pemeliharaan ON' : 'Pemeliharaan');
+    };
+
+    /* ── Expose globals ── */
+    Object.assign(window, { sortTable, fetchItems, updateItem, deleteItem, transferItem,
+        completeTransfer, updateModeChangeHandler, tailor_dashboard, checkAuthStatus,
+        updatePageGlobals, search });
+
+    $(document).on('blur', '.wh_editable-field', function() {
+        const sku = $(this).data('sku'), field = $(this).data('field'), val = $(this).val();
+        if (field === 'xfer_qnt') {
+            if (Number.isInteger(parseInt(val)) && parseInt(val) > 0) transferItem(sku, val);
+        } else { updateItem(1, sku, field, val); }
+    });
+
+    $(document).on('blur', 'input[id^="quantity3-"]', function() {
+        const sku = $(this).attr('id').replace('quantity3-','');
+        setXferVals($(this).data('shop_user_id'), sku, $(this).val());
+    });
+
+    $(document).ready(() => {
+        fetchAppConfig().always(() => {
+            checkAuthStatus();
+            $('#addItem').click(addItem);
+            $('#submitTransferRequest').click(submitTransferRequest);
+            $('#updateModeToggle').change(updateModeChangeHandler);
+            attachQntChangeColorUpdateListener();
+            $('#refreshInventory').click(() => [1,2,3].forEach(tn => fetchItems(tn)));
+            $('#refreshTransfersPending').click(() => [1,2,3].forEach(tn => fetchItems(tn)));
+            $('#refreshWarehouse').click(() => fetchItems(1));
+            $('#downloadStockData').click(downloadStockData);
+            $('#uploadStockDataButton').click(uploadStockData);
+            $('#uploadStockDataButton').on('click', () => $('#uploadStockData').click());
+            $('#uploadStockData').on('change', uploadStockData);
+        });
+    });
+})();
+</script>
+</body>
+</html>

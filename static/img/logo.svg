@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="58" fill="#003200" stroke="#FFD700" stroke-width="3"/>
+  
+  <!-- House / Rumah -->
+  <polygon points="60,18 25,50 35,50 35,85 85,85 85,50 95,50" fill="#FFD700" stroke="#003200" stroke-width="1.5"/>
+  <!-- Door -->
+  <rect x="50" y="65" width="20" height="20" rx="2" fill="#003200"/>
+  <!-- Window -->
+  <rect x="36" y="55" width="14" height="12" rx="2" fill="#003200"/>
+  <rect x="70" y="55" width="14" height="12" rx="2" fill="#003200"/>
+  
+  <!-- Awning / Kanopi toko -->
+  <rect x="22" y="85" width="76" height="8" rx="2" fill="#FFD700"/>
+  
+  <!-- Text "KEDAI" -->
+  <text x="60" y="105" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFD700" text-anchor="middle">KEDAI</text>
+</svg>
