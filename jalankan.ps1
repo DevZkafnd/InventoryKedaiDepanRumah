@@ -30,7 +30,8 @@ $packages = @(
     @{ import = "anymail";       pip = "django-anymail==15.0" },
     @{ import = "openpyxl";      pip = "openpyxl==3.1.5" },
     @{ import = "natsort";       pip = "natsort==8.4.0" },
-    @{ import = "pytz";          pip = "pytz==2026.2" }
+    @{ import = "pytz";          pip = "pytz==2026.2" },
+    @{ import = "requests";      pip = "requests==2.32.3" }
 )
 
 # Ubah ke direktori script

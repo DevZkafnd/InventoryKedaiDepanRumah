@@ -104,6 +104,14 @@ if errorlevel 1 (
     echo [OK] pytz sudah terinstall
 )
 
+python -c "import requests" >nul 2>&1
+if errorlevel 1 (
+    echo [INSTALL] Menginstall requests...
+    pip install requests==2.32.3 -q
+) else (
+    echo [OK] requests sudah terinstall
+)
+
 echo.
 echo [OK] Semua dependencies siap.
 
