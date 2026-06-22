@@ -1,6 +1,7 @@
 import logging
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import logout as auth_logout
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .models import Item, ShopItem, TransferItem, Admin
@@ -228,6 +229,11 @@ def landing(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
     return render(request, "landing.html")
+
+# Custom Logout View
+def logout_view(request):
+    auth_logout(request)
+    return redirect('landing')
 
 
 # Dashboard View (main analytics page)
