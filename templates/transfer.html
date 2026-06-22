@@ -1,0 +1,182 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}Transfer Barang{% endblock %}
+
+{% block page_icon %}bi-arrow-left-right{% endblock %}
+{% block page_title %}Transfer Barang{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    
+    <!-- Transfer Request Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-send me-2"></i>Request Transfer Barang</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Pilih Barang (SKU)</label>
+                    <select class="form-select" id="transferSku">
+                        <option value="">Loading...</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Jumlah</label>
+                    <input type="number" class="form-control" id="transferQty" min="1" placeholder="0">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <button class="btn btn-primary w-100" onclick="submitTransfer()">
+                        <i class="bi bi-send me-2"></i>Kirim Request
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Transfers -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Transfer Pending</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>SKU</th>
+                        <th>Deskripsi</th>
+                        <th>Jumlah</th>
+                        <th>Requested By</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="transferTableBody">
+                    <tr>
+                        <td colspan="7" class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<style>
+.card { border: none; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+.card-header { background: white; border-bottom: 1px solid #e9ecef; padding: 20px; font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Load items for dropdown
+function loadItemsForTransfer() {
+    $.ajax({
+        url: '/api/items/',
+        method: 'GET',
+        success: function(data) {
+            const items = data.results || [];
+            let options = '<option value="">Pilih Barang...</option>';
+            items.forEach(item => {
+                options += `<option value="${item.sku}" data-qty="${item.quantity}">${item.sku} - ${item.description} (Stok: ${item.quantity})</option>`;
+            });
+            $('#transferSku').html(options);
+        }
+    });
+}
+
+// Load pending transfers
+function loadPendingTransfers() {
+    $.ajax({
+        url: '/api/transfer_items/',
+        method: 'GET',
+        success: function(data) {
+            const transfers = data.results || [];
+            if (transfers.length === 0) {
+                $('#transferTableBody').html('<tr><td colspan="7" class="text-center text-muted py-4">Tidak ada transfer pending</td></tr>');
+                return;
+            }
+            
+            let html = '';
+            transfers.forEach(t => {
+                const statusBadge = t.status === 'pending' ? 'warning' : t.status === 'completed' ? 'success' : 'secondary';
+                html += `
+                    <tr>
+                        <td>${t.id}</td>
+                        <td><span class="badge bg-light text-dark">${t.item.sku}</span></td>
+                        <td>${t.item.description}</td>
+                        <td><span class="badge bg-info">${t.quantity}</span></td>
+                        <td>${t.requested_by || '-'}</td>
+                        <td><span class="badge bg-${statusBadge}">${t.status}</span></td>
+                        <td>
+                            ${t.status === 'pending' ? '<button class="btn btn-sm btn-success" onclick="approveTransfer(' + t.id + ')"><i class="bi bi-check-lg"></i></button>' : '-'}
+                        </td>
+                    </tr>
+                `;
+            });
+            $('#transferTableBody').html(html);
+        }
+    });
+}
+
+// Submit transfer request
+function submitTransfer() {
+    const sku = $('#transferSku').val();
+    const qty = parseInt($('#transferQty').val());
+    
+    if (!sku || !qty || qty <= 0) {
+        alert('Mohon isi semua field dengan benar');
+        return;
+    }
+    
+    $.ajax({
+        url: '/api/submit-transfer-request/',
+        method: 'POST',
+        contentType: 'application/json',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        data: JSON.stringify({ sku: sku, quantity: qty }),
+        success: function() {
+            alert('Transfer request berhasil dikirim!');
+            $('#transferSku').val('');
+            $('#transferQty').val('');
+            loadPendingTransfers();
+        },
+        error: function(xhr) {
+            alert('Gagal: ' + (xhr.responseJSON?.detail || 'Error'));
+        }
+    });
+}
+
+// Approve transfer
+function approveTransfer(id) {
+    if (!confirm('Approve transfer ini?')) return;
+    
+    $.ajax({
+        url: '/api/complete-transfer/',
+        method: 'POST',
+        contentType: 'application/json',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        data: JSON.stringify({ transfer_id: id }),
+        success: function() {
+            alert('Transfer approved!');
+            loadPendingTransfers();
+        },
+        error: function(xhr) {
+            alert('Gagal: ' + (xhr.responseJSON?.detail || 'Error'));
+        }
+    });
+}
+
+$(document).ready(function() {
+    loadItemsForTransfer();
+    loadPendingTransfers();
+});
+</script>
+{% endblock %}

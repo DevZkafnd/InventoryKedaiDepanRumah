@@ -1,0 +1,222 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}AI Assistant{% endblock %}
+
+{% block page_icon %}bi-robot{% endblock %}
+{% block page_title %}AI Assistant - Groq Llama 3{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    
+    <!-- AI Status -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                        🤖
+                    </div>
+                    <div>
+                        <h5 class="mb-1">AI Assistant Ready</h5>
+                        <p class="mb-0 text-muted">Powered by Groq - Model: Llama 3.1-8B (Fast & Efficient)</p>
+                    </div>
+                </div>
+                <div>
+                    <span class="badge bg-success">Online</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quota Info -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h6>💬 Ask Quota</h6>
+                    <div class="progress mb-2" style="height: 10px;">
+                        <div class="progress-bar bg-primary" id="askQuotaBar" role="progressbar" style="width: 100%"></div>
+                    </div>
+                    <small class="text-muted"><span id="askRemaining">20</span> / 20 requests per hour</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h6>📊 Insights Quota</h6>
+                    <div class="progress mb-2" style="height: 10px;">
+                        <div class="progress-bar bg-info" id="insightsQuotaBar" role="progressbar" style="width: 100%"></div>
+                    </div>
+                    <small class="text-muted"><span id="insightsRemaining">10</span> / 10 requests per hour</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Interface -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-chat-dots me-2"></i>Ask AI Anything</h5>
+        </div>
+        <div class="card-body">
+            <div id="chatMessages" style="min-height: 300px; max-height: 400px; overflow-y: auto; padding: 15px; background: #f8f9fa; border-radius: 8px; margin-bottom: 15px;">
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-chat-heart" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <p class="mt-3">Tanyakan sesuatu tentang inventory management...</p>
+                </div>
+            </div>
+            <div class="input-group">
+                <input type="text" class="form-control" id="aiQuestion" placeholder="Contoh: Bagaimana cara mengelola stok yang efisien?" onkeypress="if(event.key === 'Enter') askAI()">
+                <button class="btn btn-primary" onclick="askAI()">
+                    <i class="bi bi-send me-2"></i>Tanya AI
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory Insights -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-lightbulb me-2"></i>Inventory Insights</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-muted mb-3">Dapatkan insights cerdas dari data inventory Anda</p>
+            <textarea class="form-control mb-3" id="insightsQuestion" rows="2" placeholder="Contoh: Apa rekomendasi untuk barang yang sering habis?"></textarea>
+            <button class="btn btn-success" onclick="getInsights()">
+                <i class="bi bi-stars me-2"></i>Generate Insights
+            </button>
+            <div id="insightsResult" class="mt-3"></div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+.card { border: none; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+.card-header { background: white; border-bottom: 1px solid #e9ecef; padding: 20px; font-weight: 600; }
+.message { padding: 12px 15px; border-radius: 12px; margin-bottom: 10px; max-width: 80%; }
+.message-user { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-left: auto; text-align: right; }
+.message-ai { background: white; border: 1px solid #e9ecef; }
+.message-ai strong { color: #667eea; }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Load AI status and quota
+function loadAIStatus() {
+    $.ajax({
+        url: '/api/ai/status/',
+        method: 'GET',
+        success: function(data) {
+            const askRemaining = data.quota.ask.remaining;
+            const insightsRemaining = data.quota.insights.remaining;
+            
+            $('#askRemaining').text(askRemaining);
+            $('#insightsRemaining').text(insightsRemaining);
+            
+            const askPercent = (askRemaining / 20) * 100;
+            const insightsPercent = (insightsRemaining / 10) * 100;
+            
+            $('#askQuotaBar').css('width', askPercent + '%');
+            $('#insightsQuotaBar').css('width', insightsPercent + '%');
+        }
+    });
+}
+
+// Ask AI
+function askAI() {
+    const question = $('#aiQuestion').val().trim();
+    if (!question) {
+        alert('Mohon masukkan pertanyaan');
+        return;
+    }
+    
+    // Add user message
+    $('#chatMessages').append(`<div class="message message-user">${question}</div>`);
+    $('#aiQuestion').val('');
+    
+    // Add loading
+    $('#chatMessages').append(`<div class="message message-ai" id="aiLoading"><div class="spinner-border spinner-border-sm me-2"></div>AI sedang berpikir...</div>`);
+    $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+    
+    $.ajax({
+        url: '/api/ai/ask/',
+        method: 'POST',
+        contentType: 'application/json',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        data: JSON.stringify({ 
+            question: question,
+            model: 'fast'
+        }),
+        success: function(data) {
+            $('#aiLoading').remove();
+            $('#chatMessages').append(`<div class="message message-ai"><strong>AI:</strong> ${data.answer}</div>`);
+            $('#chatMessages').scrollTop($('#chatMessages')[0].scrollHeight);
+            loadAIStatus(); // Update quota
+        },
+        error: function(xhr) {
+            $('#aiLoading').remove();
+            $('#chatMessages').append(`<div class="message message-ai text-danger">Error: ${xhr.responseJSON?.error || 'Gagal menghubungi AI'}</div>`);
+        }
+    });
+}
+
+// Get Insights
+function getInsights() {
+    const question = $('#insightsQuestion').val().trim();
+    if (!question) {
+        alert('Mohon masukkan pertanyaan untuk insights');
+        return;
+    }
+    
+    $('#insightsResult').html('<div class="spinner-border text-success" role="status"></div>');
+    
+    // Get inventory data first
+    $.ajax({
+        url: '/api/items/',
+        method: 'GET',
+        success: function(itemsData) {
+            const items = itemsData.results || [];
+            
+            // Prepare simplified data
+            const inventoryData = items.slice(0, 10).map(item => ({
+                sku: item.sku,
+                description: item.description,
+                quantity: item.quantity,
+                price: item.purchase_price
+            }));
+            
+            // Call AI insights
+            $.ajax({
+                url: '/api/ai/inventory-insights/',
+                method: 'POST',
+                contentType: 'application/json',
+                headers: { 'X-CSRFToken': getCSRFToken() },
+                data: JSON.stringify({
+                    inventory_data: inventoryData,
+                    question: question
+                }),
+                success: function(data) {
+                    $('#insightsResult').html(`
+                        <div class="alert alert-success">
+                            <h6><i class="bi bi-stars me-2"></i>AI Insights:</h6>
+                            <p class="mb-0">${data.insights}</p>
+                        </div>
+                    `);
+                    loadAIStatus(); // Update quota
+                },
+                error: function(xhr) {
+                    $('#insightsResult').html(`<div class="alert alert-danger">Error: ${xhr.responseJSON?.error || 'Gagal'}</div>`);
+                }
+            });
+        }
+    });
+}
+
+$(document).ready(function() {
+    loadAIStatus();
+});
+</script>
+{% endblock %}

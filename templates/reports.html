@@ -1,0 +1,244 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}Laporan{% endblock %}
+
+{% block page_icon %}bi-graph-up{% endblock %}
+{% block page_title %}Laporan & Analisis{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    
+    <!-- Export Buttons -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex gap-3 flex-wrap">
+                <button class="btn" style="background-color: #10b981; color: white;" onclick="downloadReport()">
+                    <i class="bi bi-download me-2"></i>Download Laporan Excel
+                </button>
+                <button class="btn btn-dark" onclick="window.print()">
+                    <i class="bi bi-printer me-2"></i>Print Laporan
+                </button>
+                <button class="btn btn-outline-dark" onclick="refreshReports()">
+                    <i class="bi bi-arrow-clockwise me-2"></i>Refresh Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon">📦</div>
+                <div>
+                    <h4 id="reportTotalItems">0</h4>
+                    <p>Total Items</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon">💰</div>
+                <div>
+                    <h4 id="reportTotalValue">Rp 0</h4>
+                    <p>Total Nilai Inventory</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div>
+                    <h4 id="reportHighStock">0</h4>
+                    <p>High Stock Items</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon">⚠️</div>
+                <div>
+                    <h4 id="reportLowStock">0</h4>
+                    <p>Low Stock Items</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Distribusi Nilai Inventory</div>
+                <div class="card-body">
+                    <canvas id="valueChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Status Stok</div>
+                <div class="card-body">
+                    <canvas id="statusChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Table -->
+    <div class="card">
+        <div class="card-header">Detail Inventory</div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>SKU</th>
+                        <th>Deskripsi</th>
+                        <th>Qty</th>
+                        <th>Harga</th>
+                        <th>Total Nilai</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="reportTableBody">
+                    <tr><td colspan="6" class="text-center py-4" style="color: #555;">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<style>
+.stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 15px; }
+.stat-card .stat-icon { font-size: 2rem; }
+.stat-card h4 { margin: 0; font-size: 1.5rem; font-weight: 700; color: #000; }
+.stat-card p { margin: 5px 0 0 0; font-size: 0.85rem; color: #555; }
+.card { border: none; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+.card-header { background: white; border-bottom: 1px solid #e0e0e0; padding: 20px; font-weight: 600; color: #000; }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function loadReportData() {
+    $.ajax({
+        url: '/api/items/',
+        method: 'GET',
+        success: function(data) {
+            const items = data.results || [];
+            
+            // Calculate stats
+            const totalItems = items.length;
+            const totalValue = items.reduce((sum, item) => sum + (item.quantity * item.purchase_price), 0);
+            const highStock = items.filter(i => i.quantity > 20).length;
+            const lowStock = items.filter(i => i.quantity > 0 && i.quantity <= 10).length;
+            
+            // Update stats cards
+            $('#reportTotalItems').text(totalItems);
+            $('#reportTotalValue').text('Rp ' + totalValue.toLocaleString('id-ID'));
+            $('#reportHighStock').text(highStock);
+            $('#reportLowStock').text(lowStock);
+            
+            // Create charts
+            createValueChart(items.slice(0, 5));
+            createStatusChart(items);
+            
+            // Render table
+            renderReportTable(items);
+        }
+    });
+}
+
+function createValueChart(items) {
+    const ctx = document.getElementById('valueChart');
+    const labels = items.map(i => i.sku);
+    const values = items.map(i => i.quantity * i.purchase_price);
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Total Nilai (Rp)',
+                data: values,
+                backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+}
+
+function createStatusChart(items) {
+    const high = items.filter(i => i.quantity > 20).length;
+    const medium = items.filter(i => i.quantity > 10 && i.quantity <= 20).length;
+    const low = items.filter(i => i.quantity > 0 && i.quantity <= 10).length;
+    const empty = items.filter(i => i.quantity === 0).length;
+    
+    const ctx = document.getElementById('statusChart');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['High Stock', 'Medium Stock', 'Low Stock', 'Out of Stock'],
+            datasets: [{
+                data: [high, medium, low, empty],
+                backgroundColor: ['#10b981', '#555555', '#888888', '#000000']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+}
+
+function renderReportTable(items) {
+    if (items.length === 0) {
+        $('#reportTableBody').html('<tr><td colspan="6" class="text-center py-4" style="color: #555;">Tidak ada data</td></tr>');
+        return;
+    }
+    
+    let html = '';
+    items.forEach(item => {
+        const totalValue = item.quantity * item.purchase_price;
+        const statusBadgeColor = item.quantity > 10 ? '#10b981' : item.quantity > 0 ? '#555555' : '#000000';
+        const statusText = item.quantity > 10 ? 'Good' : item.quantity > 0 ? 'Low' : 'Empty';
+        
+        html += `
+            <tr>
+                <td><span class="badge" style="background-color: #f0f0f0; color: #000;">${item.sku}</span></td>
+                <td>${item.description}</td>
+                <td>${item.quantity}</td>
+                <td>Rp ${parseFloat(item.purchase_price).toLocaleString('id-ID')}</td>
+                <td><strong>Rp ${totalValue.toLocaleString('id-ID')}</strong></td>
+                <td><span class="badge" style="background-color: ${statusBadgeColor}; color: white;">${statusText}</span></td>
+            </tr>
+        `;
+    });
+    $('#reportTableBody').html(html);
+}
+
+function downloadReport() {
+    window.location.href = '/api/export_data/';
+}
+
+function refreshReports() {
+    loadReportData();
+}
+
+$(document).ready(function() {
+    loadReportData();
+});
+</script>
+{% endblock %}

@@ -1,284 +1,284 @@
-# 🏪 Inventory Kedai Depan Rumah
+# 📦 Inventory Management System - Kedai Depan Rumah
 
-Aplikasi web manajemen inventori untuk kedai/toko kecil. Dibangun dengan **Django** + **Django REST Framework**, tampilan berbasis Bootstrap 5.
+Sistem manajemen inventory modern dengan **AI Assistant** menggunakan Groq API untuk membantu bisnis Anda lebih efisien.
 
----
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Python](https://img.shields.io/badge/python-3.8+-green.svg)
+![Django](https://img.shields.io/badge/django-6.0+-orange.svg)
+![AI](https://img.shields.io/badge/AI-Groq%20Llama%203-purple.svg)
 
 ## ✨ Fitur Utama
 
-| Fitur | Keterangan |
-|---|---|
-| **Stok Gudang** | Kelola semua barang di gudang (tambah, edit, hapus) |
-| **Stok Toko** | Pantau stok yang sudah ada di toko |
-| **Transfer Barang** | Kasir bisa minta transfer barang dari gudang ke toko |
-| **Persetujuan Transfer** | Manajer menyetujui dan mengirim barang ke toko |
-| **Import/Export Excel** | Upload & download data stok dalam format `.xlsx` |
-| **Mode Pemeliharaan** | Kunci gudang saat sedang diperbarui |
-| **Multi Pengguna** | Role manajer dan kasir dengan hak akses berbeda |
+### 📊 **Core Features**
+- ✅ **Real-time Inventory Tracking** - Monitor stok barang secara real-time
+- ✅ **Transfer Management** - Sistem pemindahan barang antar lokasi
+- ✅ **Multi-user Support** - Mendukung banyak pengguna dengan role berbeda
+- ✅ **Excel Import/Export** - Import dan export data dalam format Excel
+- ✅ **Responsive Design** - Tampilan optimal di desktop & mobile
 
----
+### 🤖 **AI Assistant (NEW!)**
+- ✅ **Smart Insights** - Dapatkan insights dari data inventory Anda
+- ✅ **Q&A System** - Tanya jawab tentang inventory management
+- ✅ **Token Efficient** - Menggunakan model Llama 3 yang hemat token
+- ✅ **Simple Queue System** - Rate limiting otomatis untuk efisiensi
+- ✅ **Free Tier** - Menggunakan Groq API gratis
 
-## 🖥️ Persyaratan Sistem
+### 🔒 **Security Features**
+- ✅ **Anti SQL Injection** - Proteksi dari serangan SQL injection
+- ✅ **XSS Prevention** - Mencegah serangan cross-site scripting
+- ✅ **Rate Limiting** - Membatasi jumlah request per IP/user
+- ✅ **Login Protection** - Sistem lockout setelah beberapa kali gagal login
+- ✅ **CSRF Protection** - Django CSRF protection built-in
 
-- **Python** 3.10 atau lebih baru → [Download Python](https://python.org/downloads)
-- **pip** (biasanya sudah termasuk bersama Python)
-- Koneksi internet (untuk download dependencies pertama kali)
-- Windows 10/11, Linux, atau macOS
+## 🎨 Preview
 
----
+### Landing Page
+Landing page modern dengan animasi smooth dan desain gradient yang menarik
 
-## 🚀 Cara Menjalankan (Satu Perintah)
+### Dashboard
+Dashboard inventory dengan fitur lengkap dan AI Assistant
 
-> 💡 **Tip:** Rename folder proyek dari `simple-stock-management-main` menjadi `inventory-kedai-depan-rumah` melalui File Explorer atau perintah berikut (tutup VS Code/editor dulu):
-> ```
-> rename "d:\projekan\simple-stock-management-main" "inventory-kedai-depan-rumah"
-> ```
+## 🚀 Instalasi
 
-### Windows — Double-click atau jalankan di CMD:
+### Prasyarat
+- Python 3.8 atau lebih tinggi
+- pip (Python package manager)
+- Git (opsional)
 
-```bat
-jalankan.bat
-```
+### Langkah Instalasi
 
-### Windows — PowerShell:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File jalankan.ps1
-```
-
-Script ini secara otomatis akan:
-1. ✅ Cek Python & pip
-2. ✅ Cek setiap library — install jika belum ada
-3. ✅ Buat file `.env` jika belum ada
-4. ✅ Jalankan migrasi database
-5. ✅ Isi data contoh (jika database masih kosong)
-6. ✅ Jalankan server di `http://127.0.0.1:8000/`
-
----
-
-## 🔧 Setup Manual (Langkah per Langkah)
-
-Jika ingin setup secara manual tanpa script otomatis:
-
-### 1. Clone / Download Proyek
-
+#### 1️⃣ Clone atau Download Repository
 ```bash
-# Jika menggunakan git
-git clone <url-repo>
+git clone https://github.com/yourusername/inventory-kedai-depan-rumah.git
 cd inventory-kedai-depan-rumah
-
-# Atau ekstrak ZIP ke folder pilihan Anda
 ```
 
-### 2. Install Dependencies
-
+#### 2️⃣ Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Buat File Konfigurasi `.env`
-
-Salin dari template:
-
+#### 3️⃣ Setup Environment Variables
+Copy file `.env_default` menjadi `.env`:
 ```bash
-# Windows CMD
 copy .env_default .env
-
-# Windows PowerShell / Linux / macOS
-cp .env_default .env
 ```
 
-Lalu buka `.env` dan sesuaikan:
-
+Edit file `.env` dan sesuaikan konfigurasi:
 ```env
-DJANGO_SECRET_KEY='ganti-dengan-kunci-rahasia-yang-panjang-dan-acak'
+DJANGO_SECRET_KEY='generate-your-secret-key-here'
 DJANGO_DEBUG=True
 DJANGO_ALLOWED_HOSTS='127.0.0.1,localhost'
-DB_NAME='db.sqlite3'
-AXES_FAILURE_LIMIT=5
-AXES_COOLOFF_TIME=1
-ALLOW_PW_CHANGE=True
+GROQ_API_KEY='your-groq-api-key-here'
 ```
 
-> ⚠️ **Penting:** Ganti `DJANGO_SECRET_KEY` dengan string acak yang panjang sebelum digunakan di produksi.
+**Generate Django Secret Key:**
+```bash
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
 
-### 4. Setup Database
-
+#### 4️⃣ Database Migration
 ```bash
 python manage.py migrate
 ```
 
-### 5. Isi Data Contoh
-
+#### 5️⃣ Create Superuser (Admin)
 ```bash
-python seed_data.py
+python manage.py createsuperuser
 ```
 
-### 6. Jalankan Server
-
+#### 6️⃣ Collect Static Files
 ```bash
-python manage.py runserver 8000
+python manage.py collectstatic --noinput
 ```
 
-Buka browser dan akses: **http://127.0.0.1:8000/**
+#### 7️⃣ Run Development Server
+```bash
+python manage.py runserver
+```
 
----
+Aplikasi akan berjalan di: **http://127.0.0.1:8000**
 
-## 👤 Akun Default
+## 🎯 Cara Menggunakan
 
-Setelah menjalankan `seed_data.py`:
+### Akses Aplikasi
+1. Buka browser dan kunjungi `http://127.0.0.1:8000`
+2. Anda akan melihat **Landing Page** yang menarik
+3. Klik tombol **"Masuk ke Dashboard"**
+4. Login dengan username dan password yang telah dibuat
 
-| Username | Password | Role | Akses |
-|---|---|---|---|
-| `admin` | `admin123` | Manajer | Kelola gudang, setujui transfer, import/export |
-| `kasir1` | `kasir123` | Kasir/Toko | Lihat stok, minta transfer barang |
+### Fitur AI Assistant
 
-> 🔐 **Ganti password** setelah login pertama melalui menu **Ganti Kata Sandi**.
+#### 1. Simple Ask (Tanya Jawab)
+```bash
+POST /api/ai/ask/
+Content-Type: application/json
 
----
+{
+  "question": "Bagaimana cara mengelola stok yang efisien?",
+  "model": "fast"
+}
+```
 
-## 🌐 Halaman Aplikasi
+#### 2. Inventory Insights
+```bash
+POST /api/ai/inventory-insights/
+Content-Type: application/json
 
-| URL | Keterangan |
-|---|---|
-| `http://127.0.0.1:8000/` | Halaman utama dashboard inventori |
-| `http://127.0.0.1:8000/accounts/login/` | Halaman login |
-| `http://127.0.0.1:8000/admin/` | Panel administrasi Django |
-| `http://127.0.0.1:8000/accounts/password_change/` | Ganti kata sandi |
+{
+  "inventory_data": {...},
+  "question": "Apa insight dari data inventory ini?"
+}
+```
 
----
+#### 3. Check Status & Quota
+```bash
+GET /api/ai/status/
+```
 
-## 📁 Struktur Proyek
+### Rate Limits
+- **Ask Endpoint**: 20 requests per hour per user
+- **Insights Endpoint**: 10 requests per hour per user
+- **Global**: 100 requests per minute per IP
+
+## 🛠️ Teknologi yang Digunakan
+
+### Backend
+- **Django 6.0.5** - Web framework
+- **Django REST Framework** - API framework
+- **SQLite** - Database (bisa diganti MySQL/PostgreSQL)
+- **Python-dotenv** - Environment variable management
+
+### AI & Machine Learning
+- **Groq API** - AI inference platform
+- **Llama 3.1 Models** - Language models (8B, 70B, 90B)
+
+### Security
+- **Django Axes** - Brute force protection
+- **Custom Middleware** - SQL injection & XSS prevention
+- **Rate Limiting** - Request throttling
+
+### Frontend
+- **HTML5, CSS3, JavaScript** - Modern web standards
+- **Responsive Design** - Mobile-friendly
+- **Animations** - Smooth CSS animations
+
+## 📁 Struktur Project
 
 ```
 inventory-kedai-depan-rumah/
-├── 📄 jalankan.bat          ← Script setup & jalankan (Windows CMD)
-├── 📄 jalankan.ps1          ← Script setup & jalankan (PowerShell)
-├── 📄 seed_data.py          ← Script isi data contoh
-├── 📄 requirements.txt      ← Daftar library Python
-├── 📄 manage.py             ← Django management tool
-├── 📄 .env                  ← Konfigurasi (dibuat dari .env_default)
-├── 📄 .env_default          ← Template konfigurasi
-│
-├── 📁 ssm/                  ← Konfigurasi utama Django
+├── ai_service/              # AI Service Module
+│   ├── groq_client.py       # Groq API client
+│   ├── middleware.py        # Security middleware
+│   ├── views.py             # AI endpoints
+│   └── urls.py              # AI routes
+├── stock_manager/           # Main app
+│   ├── models.py            # Database models
+│   ├── views.py             # Views & business logic
+│   ├── urls.py              # URL routing
+│   └── serializers.py       # DRF serializers
+├── templates/
+│   ├── landing.html         # Landing page
+│   ├── index.html           # Dashboard
+│   └── registration/        # Auth templates
+├── static/                  # Static files
+├── ssm/                     # Project settings
 │   ├── settings.py
-│   ├── urls.py
-│   └── wsgi.py
-│
-├── 📁 stock_manager/        ← Aplikasi utama inventori
-│   ├── models.py            ← Model: Item, ShopItem, TransferItem, Admin
-│   ├── views.py             ← API views
-│   ├── urls.py              ← URL routing
-│   ├── serializers.py       ← DRF serializers
-│   ├── admin.py             ← Konfigurasi admin panel
-│   └── utils.py             ← Tools import/export Excel
-│
-├── 📁 email_service/        ← Layanan notifikasi email
-│
-├── 📁 templates/            ← Template HTML
-│   ├── index.html           ← Halaman utama dashboard
-│   └── registration/        ← Login, ganti password
-│
-└── 📁 static/               ← File statis (CSS, JS, gambar)
-    └── img/logo.svg         ← Logo kedai
+│   └── urls.py
+├── .env                     # Environment variables
+├── requirements.txt         # Python dependencies
+├── manage.py               # Django management script
+└── README.md               # This file
 ```
 
----
+## � Keamanan
 
-## 🔑 Panduan Penggunaan
+### Built-in Security Features
 
-### Sebagai Manajer (admin)
+1. **Anti SQL Injection**
+   - Pattern detection untuk query berbahaya
+   - Parameterized queries di Django ORM
 
-1. Login dengan akun `admin`
-2. **Stok Gudang** — tambah barang baru, edit harga/stok, hapus barang
-3. **Toggle pemeliharaan** — aktifkan saat sedang update massal (mencegah transfer)
-4. **Transfer Menunggu** — klik **Kirim** untuk setujui permintaan transfer dari kasir
-5. **Unduh/Unggah Data Stok** — export ke Excel atau import dari file `.xlsx`
+2. **XSS Prevention**
+   - Input sanitization
+   - HTML escaping otomatis di templates
 
-### Sebagai Kasir (kasir1)
+3. **Rate Limiting**
+   - Per IP: 100 requests/minute
+   - Per User (AI): 20 requests/hour
 
-1. Login dengan akun `kasir1`
-2. **Stok Gudang** — lihat barang tersedia, isi kolom **Jml Transfer** lalu tekan Enter
-3. **Kirim Permintaan Transfer** — klik tombol untuk mengirim semua permintaan ke manajer
-4. **Transfer Menunggu** — pantau status permintaan (abu-abu = sudah dikirim ke manajer)
-5. **Stok Toko** — lihat barang yang sudah ada di toko Anda
+4. **Brute Force Protection**
+   - Max 3 login attempts
+   - Cooldown 1 hour after lockout
 
----
+5. **CSRF Protection**
+   - Django CSRF middleware
+   - Token validation untuk forms
 
-## ⚙️ Konfigurasi Lanjutan
+## 🎓 AI Models yang Tersedia
 
-### Menambah Pengguna Baru
+### Model Options
+| Model | Speed | Quality | Use Case |
+|-------|-------|---------|----------|
+| `fast` | ⚡⚡⚡ | ⭐⭐ | Quick answers, simple queries |
+| `balanced` | ⚡⚡ | ⭐⭐⭐ | General purpose, good balance |
+| `quality` | ⚡ | ⭐⭐⭐⭐ | Complex analysis, detailed insights |
 
-Melalui panel admin (`/admin/`):
-1. Buka **Authentication → Users → Add User**
-2. Isi username dan password
-3. Di bagian **Groups**, tambahkan ke grup:
-   - `managers` — untuk manajer gudang
-   - `shop_users` — untuk kasir/pengguna toko
-   - `receive_mail` — untuk menerima notifikasi email transfer
+### Token Efficiency Tips
+- Batasi max_tokens (default: 300)
+- Gunakan model `fast` untuk query sederhana
+- Potong data besar sebelum kirim ke AI
+- Gunakan caching untuk query berulang
 
-### Konfigurasi Aplikasi
+## 📝 Development
 
-Melalui panel admin → **App Configuration**:
-
-| Opsi | Keterangan |
-|---|---|
-| Allow uploads | Izinkan import data dari Excel |
-| Allow upload deletions | Hapus data yang tidak ada di file Excel saat import |
-| Allow email notifications | Kirim email notifikasi saat ada transfer |
-| Records per page | Jumlah baris per halaman tabel |
-
----
-
-## 🛠️ Troubleshooting
-
-**Port 8000 sudah dipakai:**
+### Run Tests
 ```bash
-python manage.py runserver 8080
-# Akses di http://127.0.0.1:8080/
+python manage.py test
 ```
 
-**Error "No module named X":**
+### Create Migrations
 ```bash
-pip install -r requirements.txt
-```
-
-**Database error / tabel tidak ada:**
-```bash
+python manage.py makemigrations
 python manage.py migrate
 ```
 
-**Lupa password admin:**
+### Shell Access
 ```bash
-python manage.py changepassword admin
+python manage.py shell
 ```
 
-**Reset database (hapus semua data):**
-```bash
-# Hapus file database
-del db.sqlite3          # Windows CMD
-Remove-Item db.sqlite3  # PowerShell
+## 🤝 Contributing
 
-# Buat ulang
-python manage.py migrate
-python seed_data.py
-```
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## � Acknowledgments
+
+- **Django** - The web framework for perfectionists
+- **Groq** - Fast AI inference platform
+- **Meta** - Llama language models
+- **Community** - All open source contributors
+
+## 📞 Support
+
+Jika Anda menemukan bug atau memiliki pertanyaan:
+- Open an issue di GitHub
+- Email: support@example.com
+
+## 🎉 Updates
+
+### Version 1.0.0 (Current)
+- ✅ Landing page dengan modern UI
+- ✅ AI Assistant integration dengan Groq
+- ✅ Security middleware (anti-hacker)
+- ✅ Token efficient AI system
+- ✅ Simple queue system untuk rate limiting
+- ✅ Responsive design untuk mobile
 
 ---
 
-## 📦 Dependencies
-
-| Library | Versi | Fungsi |
-|---|---|---|
-| Django | 6.0.5 | Framework web utama |
-| djangorestframework | 3.17.1 | REST API |
-| python-dotenv | 1.2.1 | Baca file .env |
-| django-axes | 8.3.1 | Proteksi brute-force login |
-| django-anymail | 15.0 | Layanan email transaksional |
-| openpyxl | 3.1.5 | Baca/tulis file Excel |
-| natsort | 8.4.0 | Pengurutan natural (SKU) |
-| pytz | 2026.2 | Zona waktu |
-
----
-
-*Inventory Kedai Depan Rumah v1.0 — Lisensi GPLv3*
+**Made with ❤️ for Indonesian SMEs**

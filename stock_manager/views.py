@@ -1,5 +1,5 @@
 import logging
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -222,7 +222,57 @@ def get_edit_lock_status(request):
     return JsonResponse({"error": "Invalid request method"}, status=400)
 
 
-# Main Page View
+# Landing Page View (public)
+def landing(request):
+    """Landing page before login"""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    return render(request, "landing.html")
+
+
+# Dashboard View (main analytics page)
+@ensure_csrf_cookie
+@login_required
+def dashboard(request):
+    return render(request, "dashboard.html")
+
+
+# Warehouse View
+@ensure_csrf_cookie
+@login_required
+def warehouse(request):
+    return render(request, "warehouse.html")
+
+
+# Shop View
+@ensure_csrf_cookie
+@login_required
+def shop(request):
+    return render(request, "warehouse.html")  # Reuse same template for now
+
+
+# Transfer View
+@ensure_csrf_cookie
+@login_required
+def transfer(request):
+    return render(request, "transfer.html")
+
+
+# Reports View
+@ensure_csrf_cookie
+@login_required
+def reports(request):
+    return render(request, "reports.html")
+
+
+# AI Assistant View
+@ensure_csrf_cookie
+@login_required
+def ai_assistant(request):
+    return render(request, "ai_assistant.html")
+
+
+# Main Page View (old - keep for backwards compatibility)
 @ensure_csrf_cookie
 @login_required
 def index(request):

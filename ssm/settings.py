@@ -60,8 +60,8 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {"anon": "100/day", "user": "100/second"},
     "DEFAULT_PAGINATION_CLASS": "stock_manager.pagination.CustomPagination",
 }
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/dashboard/"
+LOGOUT_REDIRECT_URL = "/"
 ROOT_URLCONF = "ssm.urls"
 TEMPLATES = [
     {

@@ -4,6 +4,13 @@ from .views import (
     ItemViewSet,
     ShopItemViewSet,
     TransferItemViewSet,
+    landing,
+    dashboard,
+    warehouse,
+    shop,
+    transfer,
+    reports,
+    ai_assistant,
     index,
     get_user,
     transfer_item,
@@ -34,7 +41,13 @@ router.register(r"shop_items", ShopItemViewSet)
 router.register(r"transfer_items", TransferItemViewSet)
 
 urlpatterns = [
-    path("", index, name="index"),
+    path("dashboard/", dashboard, name="dashboard"),
+    path("warehouse/", warehouse, name="warehouse"),
+    path("shop/", shop, name="shop"),
+    path("transfer/", transfer, name="transfer"),
+    path("reports/", reports, name="reports"),
+    path("ai-assistant/", ai_assistant, name="ai_assistant"),
+    path("old-dashboard/", index, name="index"),  # Keep old for reference
     path("api/", include(router.urls)),
     path("auth/user/", get_user, name="get_user"),  # Custom user endpoint
     path(

@@ -1,0 +1,125 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}Stok Gudang{% endblock %}
+
+{% block page_icon %}bi-building{% endblock %}
+{% block page_title %}Stok Gudang{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <!-- Toolbar -->
+    <div class="toolbar mb-4">
+        <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input type="text" class="form-control" placeholder="Cari barang..." id="searchWarehouse">
+        </div>
+        <div class="toolbar-actions">
+            <button class="btn" style="background-color: #10b981; color: white;" onclick="showAddModal()">
+                <i class="bi bi-plus-lg me-2"></i>Tambah Barang
+            </button>
+            <button class="btn btn-outline-dark" onclick="refreshData()">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Table Card -->
+    <div class="table-card">
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>SKU</th>
+                        <th>Deskripsi</th>
+                        <th>Harga Beli</th>
+                        <th>Tanggal Kadaluarsa</th>
+                        <th>Stok</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="warehouseTableBody">
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <div class="spinner-border" style="color: #10b981;" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Load warehouse data
+function loadWarehouse() {
+    $.ajax({
+        url: '/api/items/',
+        method: 'GET',
+        success: function(data) {
+            const items = data.results || [];
+            renderWarehouseTable(items);
+        },
+        error: function() {
+            $('#warehouseTableBody').html('<tr><td colspan="6" class="text-center py-5" style="color: #000;">Gagal memuat data</td></tr>');
+        }
+    });
+}
+
+function renderWarehouseTable(items) {
+    if (items.length === 0) {
+        $('#warehouseTableBody').html('<tr><td colspan="6" class="text-center py-5" style="color: #555;">Tidak ada data</td></tr>');
+        return;
+    }
+
+    let html = '';
+    items.forEach(item => {
+        const qtyBadgeColor = item.quantity > 10 ? '#10b981' : item.quantity > 0 ? '#555555' : '#000000';
+        html += `
+            <tr>
+                <td><span class="badge" style="background-color: #f0f0f0; color: #000;">${item.sku}</span></td>
+                <td>${item.description}</td>
+                <td>Rp ${parseFloat(item.purchase_price || 0).toLocaleString('id-ID')}</td>
+                <td>${item.expiry_date ? new Date(item.expiry_date).toLocaleDateString('id-ID') : '-'}</td>
+                <td><span class="badge" style="background-color: ${qtyBadgeColor}; color: white;">${item.quantity}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-dark" onclick="editItem('${item.sku}')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    $('#warehouseTableBody').html(html);
+}
+
+function refreshData() {
+    loadWarehouse();
+}
+
+function showAddModal() {
+    alert('Add item modal coming soon!');
+}
+
+function editItem(sku) {
+    alert('Edit item: ' + sku);
+}
+
+// Initialize when document ready
+$(document).ready(function() {
+    loadWarehouse();
+    
+    // Search functionality
+    $('#searchWarehouse').on('input', function() {
+        const query = $(this).val().toLowerCase();
+        $('#warehouseTableBody tr').each(function() {
+            const text = $(this).text().toLowerCase();
+            $(this).toggle(text.indexOf(query) > -1);
+        });
+    });
+});
+</script>
+{% endblock %}
