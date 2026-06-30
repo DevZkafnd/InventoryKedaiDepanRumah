@@ -157,7 +157,7 @@
 
         <div class="login-card">
             <h2>Selamat Datang</h2>
-            <p class="subtitle">Masuk untuk mengelola inventori toko Anda</p>
+            <p class="subtitle">Masuk sekali, nanti sistem akan mengarahkan sesuai peran Anda (Owner / Manajer / Kasir)</p>
 
             {% if form.errors %}
             <div class="alert-error">
@@ -168,29 +168,32 @@
 
             <form method="post">
                 {% csrf_token %}
+                {% if next %}
+                <input type="hidden" name="next" value="{{ next }}">
+                {% endif %}
                 <div>
-                    <label class="form-label">Nama Pengguna</label>
+                    <label class="form-label">Username</label>
                     <div class="input-group-custom">
                         <i class="bi bi-person input-icon"></i>
                         <input type="text" name="username" id="username"
                                class="form-control-custom"
-                               placeholder="Masukkan nama pengguna"
+                               placeholder="Contoh: admin / kasir1 / owner1"
                                required autofocus autocomplete="username">
                     </div>
                 </div>
                 <div>
-                    <label class="form-label">Kata Sandi</label>
+                    <label class="form-label">Password</label>
                     <div class="input-group-custom">
                         <i class="bi bi-lock input-icon"></i>
                         <input type="password" name="password" id="password"
                                class="form-control-custom"
-                               placeholder="Masukkan kata sandi"
+                               placeholder="Masukkan password"
                                required autocomplete="current-password">
                     </div>
                 </div>
                 <button type="submit" class="btn-login">
                     <i class="bi bi-box-arrow-in-right"></i>
-                    Masuk
+                    Login
                 </button>
             </form>
         </div>

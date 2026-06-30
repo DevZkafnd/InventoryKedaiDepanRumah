@@ -19,10 +19,12 @@ def seed():
     print("=" * 55)
 
     # ── 1. Grup pengguna ──────────────────────────────────────
+    owners_group, _ = Group.objects.get_or_create(name="owners")
     managers_group, _ = Group.objects.get_or_create(name="managers")
+    cashiers_group, _ = Group.objects.get_or_create(name="cashiers")
     shop_users_group, _ = Group.objects.get_or_create(name="shop_users")
     receive_mail_group, _ = Group.objects.get_or_create(name="receive_mail")
-    print("[OK] Grup: managers, shop_users, receive_mail")
+    print("[OK] Grup: owners, managers, cashiers, shop_users (legacy), receive_mail")
 
     # ── 2. Superuser / manajer ────────────────────────────────
     if not User.objects.filter(username="admin").exists():
@@ -38,21 +40,37 @@ def seed():
         admin_user.groups.add(managers_group)
         print("[--] Superuser 'admin' sudah ada")
 
-    # ── 3. Pengguna toko (kasir) ──────────────────────────────
+    # ── 3. Owner (read-only pengawasan) ───────────────────────
+    if not User.objects.filter(username="owner1").exists():
+        owner = User.objects.create_user(
+            username="owner1",
+            email="owner1@kedai.com",
+            password="owner123",
+        )
+        owner.groups.add(owners_group)
+        print("[OK] User 'owner1' dibuat (password: owner123)")
+    else:
+        owner = User.objects.get(username="owner1")
+        owner.groups.add(owners_group)
+        print("[--] User 'owner1' sudah ada")
+
+    # ── 4. Pengguna toko (kasir) ──────────────────────────────
     if not User.objects.filter(username="kasir1").exists():
         kasir = User.objects.create_user(
             username="kasir1",
             email="kasir1@kedai.com",
             password="kasir123",
         )
+        kasir.groups.add(cashiers_group)
         kasir.groups.add(shop_users_group)
         print("[OK] Pengguna toko 'kasir1' dibuat  (password: kasir123)")
     else:
         kasir = User.objects.get(username="kasir1")
+        kasir.groups.add(cashiers_group)
         kasir.groups.add(shop_users_group)
         print("[--] Pengguna toko 'kasir1' sudah ada")
 
-    # ── 4. Konfigurasi Admin ──────────────────────────────────
+    # ── 5. Konfigurasi Admin ──────────────────────────────────
     if not Admin.objects.exists():
         Admin.objects.create(
             edit_lock=False,
@@ -65,7 +83,7 @@ def seed():
     else:
         print("[--] Konfigurasi aplikasi sudah ada")
 
-    # ── 5. Data barang gudang ─────────────────────────────────
+    # ── 6. Data barang gudang ─────────────────────────────────
     barang_gudang = [
         # (sku, deskripsi, harga_jual, stok_gudang)
         ("MIE-001",  "Mie Instan Goreng",          3500.00,  120),
@@ -114,7 +132,7 @@ def seed():
     else:
         print(f"[--] Data barang gudang sudah ada ({Item.objects.count()} item)")
 
-    # ── 6. Stok toko kasir1 (sebagian barang) ─────────────────
+    # ── 7. Stok toko kasir1 (sebagian barang) ─────────────────
     stok_toko = [
         ("MIE-001", 20),
         ("MIE-002", 15),
@@ -155,6 +173,7 @@ def seed():
     print("  ┌─────────────┬──────────┬──────────────────┐")
     print("  │ Username    │ Password │ Role             │")
     print("  ├─────────────┼──────────┼──────────────────┤")
+    print("  │ owner1      │ owner123 │ Owner (Read-only)│")
     print("  │ admin       │ admin123 │ Manajer/Admin    │")
     print("  │ kasir1      │ kasir123 │ Pengguna Toko    │")
     print("  └─────────────┴──────────┴──────────────────┘")

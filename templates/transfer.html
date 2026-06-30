@@ -27,9 +27,14 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">&nbsp;</label>
-                    <button class="btn btn-primary w-100" onclick="submitTransfer()">
-                        <i class="bi bi-send me-2"></i>Kirim Request
-                    </button>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary w-100" id="btnAddToDraft" onclick="addToDraft()">
+                            <i class="bi bi-plus-circle me-2"></i>Tambah
+                        </button>
+                        <button class="btn btn-outline-dark w-100" id="btnSubmitAll" onclick="submitAllRequests()">
+                            <i class="bi bi-send me-2"></i>Submit
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -38,24 +43,23 @@
     <!-- Pending Transfers -->
     <div class="card">
         <div class="card-header">
-            <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Transfer Pending</h5>
+            <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Daftar Transfer</h5>
         </div>
         <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>SKU</th>
                         <th>Deskripsi</th>
                         <th>Jumlah</th>
                         <th>Requested By</th>
-                        <th>Status</th>
+                        <th>Ordered</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="transferTableBody">
                     <tr>
-                        <td colspan="7" class="text-center py-4">
+                        <td colspan="6" class="text-center py-4">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
@@ -76,23 +80,44 @@
 
 {% block extra_js %}
 <script>
-// Load items for dropdown
+let currentUser = { groups: [] };
+
+function isManager() {
+    return (currentUser.groups || []).includes('managers');
+}
+
+function isOwner() {
+    return (currentUser.groups || []).includes('owners');
+}
+
+function isCashier() {
+    return (currentUser.groups || []).includes('cashiers') || (currentUser.groups || []).includes('shop_users');
+}
+
+function setTransferFormEnabled(enabled) {
+    $('#transferSku').prop('disabled', !enabled);
+    $('#transferQty').prop('disabled', !enabled);
+    $('#btnAddToDraft').prop('disabled', !enabled);
+    $('#btnSubmitAll').prop('disabled', !enabled);
+}
+
 function loadItemsForTransfer() {
     $.ajax({
-        url: '/api/items/',
+        url: '/api/transfer-catalog/',
         method: 'GET',
-        success: function(data) {
-            const items = data.results || [];
+        success: function(items) {
             let options = '<option value="">Pilih Barang...</option>';
-            items.forEach(item => {
-                options += `<option value="${item.sku}" data-qty="${item.quantity}">${item.sku} - ${item.description} (Stok: ${item.quantity})</option>`;
+            (items || []).forEach(item => {
+                options += `<option value="${item.sku}">${item.sku} - ${item.description} (Stok: ${item.quantity})</option>`;
             });
             $('#transferSku').html(options);
+        },
+        error: function() {
+            $('#transferSku').html('<option value="">Gagal memuat item</option>');
         }
     });
 }
 
-// Load pending transfers
 function loadPendingTransfers() {
     $.ajax({
         url: '/api/transfer_items/',
@@ -100,23 +125,31 @@ function loadPendingTransfers() {
         success: function(data) {
             const transfers = data.results || [];
             if (transfers.length === 0) {
-                $('#transferTableBody').html('<tr><td colspan="7" class="text-center text-muted py-4">Tidak ada transfer pending</td></tr>');
+                $('#transferTableBody').html('<tr><td colspan="6" class="text-center text-muted py-4">Tidak ada data</td></tr>');
                 return;
             }
             
             let html = '';
             transfers.forEach(t => {
-                const statusBadge = t.status === 'pending' ? 'warning' : t.status === 'completed' ? 'success' : 'secondary';
+                const ordered = !!t.ordered;
+                const orderedLabel = ordered ? 'YES' : 'NO';
+                const orderedBadge = ordered ? 'success' : 'secondary';
+                const username = t.shop_user?.username || '-';
+                const canApprove = isManager() && ordered;
                 html += `
                     <tr>
-                        <td>${t.id}</td>
                         <td><span class="badge bg-light text-dark">${t.item.sku}</span></td>
                         <td>${t.item.description}</td>
                         <td><span class="badge bg-info">${t.quantity}</span></td>
-                        <td>${t.requested_by || '-'}</td>
-                        <td><span class="badge bg-${statusBadge}">${t.status}</span></td>
+                        <td>${username}</td>
+                        <td><span class="badge bg-${orderedBadge}">${orderedLabel}</span></td>
                         <td>
-                            ${t.status === 'pending' ? '<button class="btn btn-sm btn-success" onclick="approveTransfer(' + t.id + ')"><i class="bi bi-check-lg"></i></button>' : '-'}
+                            ${canApprove ? `
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-success" onclick="approveTransfer('${t.item.sku}', ${t.quantity}, '${username}')"><i class="bi bi-check-lg"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="cancelTransfer('${t.item.sku}', ${t.quantity}, '${username}')"><i class="bi bi-x-lg"></i></button>
+                                </div>
+                            ` : '-'}
                         </td>
                     </tr>
                 `;
@@ -126,8 +159,7 @@ function loadPendingTransfers() {
     });
 }
 
-// Submit transfer request
-function submitTransfer() {
+function addToDraft() {
     const sku = $('#transferSku').val();
     const qty = parseInt($('#transferQty').val());
     
@@ -135,15 +167,19 @@ function submitTransfer() {
         alert('Mohon isi semua field dengan benar');
         return;
     }
+    if (!(isCashier() || isManager())) {
+        alert('Permission denied.');
+        return;
+    }
     
     $.ajax({
-        url: '/api/submit-transfer-request/',
+        url: '/api/transfer/',
         method: 'POST',
-        contentType: 'application/json',
         headers: { 'X-CSRFToken': getCSRFToken() },
-        data: JSON.stringify({ sku: sku, quantity: qty }),
+        contentType: 'application/json',
+        data: JSON.stringify({ sku: sku, transfer_quantity: String(qty) }),
         success: function() {
-            alert('Transfer request berhasil dikirim!');
+            alert('Berhasil ditambahkan ke draft transfer.');
             $('#transferSku').val('');
             $('#transferQty').val('');
             loadPendingTransfers();
@@ -154,18 +190,64 @@ function submitTransfer() {
     });
 }
 
-// Approve transfer
-function approveTransfer(id) {
-    if (!confirm('Approve transfer ini?')) return;
+function submitAllRequests() {
+    if (!isCashier()) {
+        alert('Hanya kasir yang bisa submit request.');
+        return;
+    }
     
+    $.ajax({
+        url: '/api/submit-transfer-request/',
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        contentType: 'application/json',
+        data: JSON.stringify({}),
+        success: function() {
+            alert('Request transfer berhasil disubmit.');
+            loadPendingTransfers();
+        },
+        error: function(xhr) {
+            alert('Gagal: ' + (xhr.responseJSON?.detail || 'Error'));
+        }
+    });
+}
+
+function approveTransfer(sku, qty, username) {
+    if (!isManager()) {
+        alert('Hanya manajer yang bisa approve.');
+        return;
+    }
+    if (!confirm('Approve transfer ini?')) return;
     $.ajax({
         url: '/api/complete-transfer/',
         method: 'POST',
-        contentType: 'application/json',
         headers: { 'X-CSRFToken': getCSRFToken() },
-        data: JSON.stringify({ transfer_id: id }),
+        contentType: 'application/json',
+        data: JSON.stringify({ sku: sku, quantity: String(qty), shop_user_id: username, cancel: "false" }),
         success: function() {
-            alert('Transfer approved!');
+            alert('Transfer berhasil diproses.');
+            loadPendingTransfers();
+        },
+        error: function(xhr) {
+            alert('Gagal: ' + (xhr.responseJSON?.detail || 'Error'));
+        }
+    });
+}
+
+function cancelTransfer(sku, qty, username) {
+    if (!isManager()) {
+        alert('Hanya manajer yang bisa cancel.');
+        return;
+    }
+    if (!confirm('Cancel transfer ini?')) return;
+    $.ajax({
+        url: '/api/complete-transfer/',
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        contentType: 'application/json',
+        data: JSON.stringify({ sku: sku, quantity: String(qty), shop_user_id: username, cancel: "true" }),
+        success: function() {
+            alert('Transfer berhasil dicancel.');
             loadPendingTransfers();
         },
         error: function(xhr) {
@@ -175,8 +257,30 @@ function approveTransfer(id) {
 }
 
 $(document).ready(function() {
-    loadItemsForTransfer();
-    loadPendingTransfers();
+    $.ajax({
+        url: '/auth/user/',
+        method: 'GET',
+        success: function(data) {
+            currentUser = data || { groups: [] };
+            loadItemsForTransfer();
+            loadPendingTransfers();
+
+            if (isOwner()) {
+                setTransferFormEnabled(false);
+            } else if (isManager() || isCashier()) {
+                setTransferFormEnabled(true);
+                if (!isCashier()) {
+                    $('#btnSubmitAll').hide();
+                }
+            } else {
+                setTransferFormEnabled(false);
+            }
+        },
+        error: function() {
+            setTransferFormEnabled(false);
+            loadPendingTransfers();
+        }
+    });
 });
 </script>
 {% endblock %}

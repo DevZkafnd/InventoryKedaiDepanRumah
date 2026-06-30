@@ -4,15 +4,19 @@ from .views import (
     ItemViewSet,
     ShopItemViewSet,
     TransferItemViewSet,
+    WasteItemViewSet,
     landing,
     dashboard,
     warehouse,
     shop,
     transfer,
     reports,
+    waste,
     ai_assistant,
     index,
     get_user,
+    post_login_redirect,
+    transfer_catalog,
     transfer_item,
     complete_transfer,
     set_edit_lock_status,
@@ -39,13 +43,16 @@ router = PathRouter()
 router.register(r"items", ItemViewSet)
 router.register(r"shop_items", ShopItemViewSet)
 router.register(r"transfer_items", TransferItemViewSet)
+router.register(r"waste_items", WasteItemViewSet)
 
 urlpatterns = [
+    path("post-login/", post_login_redirect, name="post_login_redirect"),
     path("dashboard/", dashboard, name="dashboard"),
     path("warehouse/", warehouse, name="warehouse"),
     path("shop/", shop, name="shop"),
     path("transfer/", transfer, name="transfer"),
     path("reports/", reports, name="reports"),
+    path("waste/", waste, name="waste"),
     path("ai-assistant/", ai_assistant, name="ai_assistant"),
     path("old-dashboard/", index, name="index"),  # Keep old for reference
     path("api/", include(router.urls)),
@@ -54,6 +61,7 @@ urlpatterns = [
         "auth/token/", obtain_auth_token, name="api_token_auth"
     ),  # Optional token login
     path("api/transfer/", transfer_item, name="transfer_item"),
+    path("api/transfer-catalog/", transfer_catalog, name="transfer_catalog"),
     path(
         "api/submit-transfer-request/",
         submit_transfer_request,

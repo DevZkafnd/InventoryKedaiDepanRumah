@@ -1,0 +1,105 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}Stok Toko{% endblock %}
+
+{% block page_icon %}bi-shop{% endblock %}
+{% block page_title %}Stok Toko{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <div class="toolbar mb-4">
+        <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input type="text" class="form-control" placeholder="Cari barang..." id="searchShop">
+        </div>
+        <div class="toolbar-actions">
+            <button class="btn btn-outline-dark" onclick="refreshShop()">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="table-card">
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>SKU</th>
+                        <th>Deskripsi</th>
+                        <th>Stok Etalase</th>
+                        <th>Last Update</th>
+                    </tr>
+                </thead>
+                <tbody id="shopTableBody">
+                    <tr>
+                        <td colspan="4" class="text-center py-5">
+                            <div class="spinner-border" style="color: #10b981;" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function loadShop() {
+    $.ajax({
+        url: '/api/shop_items/',
+        method: 'GET',
+        success: function(data) {
+            const items = data.results || [];
+            renderShopTable(items);
+        },
+        error: function(xhr) {
+            const msg = xhr && xhr.responseJSON && (xhr.responseJSON.detail || xhr.responseJSON.error) ? (xhr.responseJSON.detail || xhr.responseJSON.error) : 'Gagal memuat data';
+            $('#shopTableBody').html(`<tr><td colspan="4" class="text-center py-5" style="color: #000;">${msg}</td></tr>`);
+        }
+    });
+}
+
+function renderShopTable(items) {
+    if (!items.length) {
+        $('#shopTableBody').html('<tr><td colspan="4" class="text-center py-5" style="color: #555;">Tidak ada data</td></tr>');
+        return;
+    }
+    let html = '';
+    items.forEach(row => {
+        const sku = row.item_sku || row.item?.sku || '-';
+        const desc = row.item_description || row.item?.description || '-';
+        const qty = row.quantity ?? 0;
+        const qtyBadgeColor = qty > 10 ? '#10b981' : qty > 0 ? '#555555' : '#000000';
+        const updated = row.last_updated ? new Date(row.last_updated).toLocaleString('id-ID') : '-';
+        html += `
+            <tr>
+                <td><span class="badge" style="background-color: #f0f0f0; color: #000;">${sku}</span></td>
+                <td>${desc}</td>
+                <td><span class="badge" style="background-color: ${qtyBadgeColor}; color: white;">${qty}</span></td>
+                <td>${updated}</td>
+            </tr>
+        `;
+    });
+    $('#shopTableBody').html(html);
+}
+
+function refreshShop() {
+    loadShop();
+}
+
+$(document).ready(function() {
+    loadShop();
+    $('#searchShop').on('input', function() {
+        const query = $(this).val().toLowerCase();
+        $('#shopTableBody tr').each(function() {
+            const text = $(this).text().toLowerCase();
+            $(this).toggle(text.indexOf(query) > -1);
+        });
+    });
+});
+</script>
+{% endblock %}
+

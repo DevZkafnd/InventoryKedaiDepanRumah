@@ -1,35 +1,40 @@
 
 # 📦 Inventory Management System - Kedai Depan Rumah
 
-Sistem manajemen inventory modern dengan **AI Assistant** (support Gemini &amp; Groq) untuk membantu bisnis Anda lebih efisien!
+Sistem manajemen inventory modern dengan **AI Assistant** berbasis **Groq (Llama)** untuk membantu bisnis Anda lebih efisien!
 
-![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-green.svg)
-![Django](https://img.shields.io/badge/django-6.0+-orange.svg)
-![AI](https://img.shields.io/badge/AI-Gemini%20%7C%20Groq-purple.svg)
+![Django](https://img.shields.io/badge/django-6.0.5-orange.svg)
+![AI](https://img.shields.io/badge/AI-Groq%20(Llama)-purple.svg)
 
 ## ✨ Fitur Utama
 
 ### 📊 Core Features
-- ✅ Real-time Inventory Tracking - Monitor stok barang secara real-time
-- ✅ Transfer Management - Sistem pemindahan barang antar lokasi
-- ✅ Multi-user Support - Mendukung banyak pengguna dengan role berbeda
-- ✅ Excel Import/Export - Import dan export data dalam format Excel
-- ✅ Responsive Design - Tampilan optimal di desktop &amp; mobile
-- ✅ Expiry Date Tracking - Catat dan monitor tanggal kadaluarsa barang
+- ✅ Real-time Inventory Tracking - Monitor stok gudang &amp; stok toko
+- ✅ Multi-user &amp; Role-based Access - Strict RBAC untuk Owner, Manajer, dan Kasir
+- ✅ Transfer Management - Request transfer, submit request, approve/cancel oleh manajer
+- ✅ Waste Management Module - Pencatatan penyusutan barang (rusak/basi) di luar penjualan untuk menekan kerugian finansial
+- ✅ Maintenance Mode (Edit Lock) - Transfer diblok saat gudang sedang maintenance
+- ✅ Excel Export/Import - Export laporan Excel, import via upload (bisa diaktif/nonaktifkan)
+- ✅ Soft Delete Barang - Delete barang via flag `is_active` (data tetap aman)
+- ✅ Pagination Configurable - `records_per_page` &amp; override `page_size` via query param
+- ✅ Expiry Date Tracking - Catat &amp; monitor tanggal kadaluarsa barang
+- ✅ Responsive UI - Tampilan optimal di desktop &amp; mobile
 
-### 🤖 AI Assistant (NEW!)
-- ✅ Smart Insights - Dapatkan insights dari data inventory Anda
-- ✅ Q&amp;A System - Tanya jawab tentang inventory management
-- ✅ Dual AI Support - Pilih antara **Gemini AI** atau **Groq AI**
-- ✅ Token Efficient - Menggunakan model hemat token
-- ✅ Simple Queue System - Rate limiting otomatis untuk efisiensi
+### 🤖 AI Assistant (Groq - Llama)
+- ✅ Q&amp;A System - Tanya jawab inventory management
+- ✅ Inventory Insights - Generate insight berbasis data inventory
+- ✅ Model Modes - `fast | balanced | quality`
+- ✅ Token Efficient - Default max tokens (hemat biaya)
+- ✅ Rate Limit Per User - Ask: 20/jam, Insights: 10/jam
+- ✅ Simple Queue System - Rate limiting internal untuk API provider
 
 ### 🔒 Security Features
-- ✅ Anti SQL Injection - Proteksi dari serangan SQL injection
-- ✅ XSS Prevention - Mencegah serangan cross-site scripting
-- ✅ Rate Limiting - Membatasi jumlah request per IP/user
-- ✅ Login Protection - Sistem lockout setelah beberapa kali gagal login
+- ✅ Anti SQL Injection &amp; XSS Prevention - Pattern detection pada middleware
+- ✅ Rate Limiting (Middleware) - Max 100 request/menit per IP
+- ✅ DRF Throttling - `anon: 100/day`, `user: 100/second`
+- ✅ Login Protection (Django Axes) - `AXES_FAILURE_LIMIT` &amp; `AXES_COOLOFF_TIME` via `.env`
 - ✅ CSRF Protection - Django CSRF protection built-in
 
 ### 🎨 Design System
@@ -88,11 +93,11 @@ DJANGO_DEBUG=True
 DJANGO_ALLOWED_HOSTS='127.0.0.1,localhost'
 
 # AI Provider (pilih salah satu: gemini atau groq)
-AI_PROVIDER='gemini'
+AI_PROVIDER='groq'
 
 # AI API Keys
 GROQ_API_KEY='your-groq-api-key-here'
-GEMINI_API_KEY='your-gemini-api-key-here'
+GEMINI_API_KEY='your-gemini-api-key-here'  # opsional (client tersedia, endpoint saat ini memakai Groq)
 ```
 
 **Generate Django Secret Key:**
@@ -133,15 +138,13 @@ Aplikasi akan berjalan di: **http://127.0.0.1:8000**
 ### Navigasi Sidebar
 1. 🏠 **Dashboard** - Overview stok, grafik, dan statistik
 2. 🏢 **Stok Gudang** - Kelola barang di gudang
-3. 🛍️ **Stok Toko** - Lihat barang di toko
+3. 🛍️ **Stok Toko** - Lihat stok toko (per user toko)
 4. ↔️ **Transfer Barang** - Request dan approve transfer barang
 5. 📊 **Laporan** - Analisis, export Excel, dan print laporan
-6. 🤖 **AI Assistant** - Tanya jawab dan dapatkan insights dengan AI
+6. 🤖 **AI Assistant** - Tanya jawab dan insights dengan AI
 
 ### Fitur AI Assistant
-Tersedia dua provider AI:
-1. **Gemini AI** - Google's AI, supports both API key types
-2. **Groq AI** - Fast inference with Llama 3 models
+AI Assistant saat ini menggunakan **Groq API** (model Llama) untuk Q&amp;A dan insights.
 
 ## 📂 Struktur Project - Detail!
 
@@ -176,8 +179,8 @@ Folder ini menangani semua fitur AI Assistant!
 |------|-----------|
 | `__init__.py` | Init file Python package |
 | `apps.py` | Konfigurasi app Django untuk ai_service |
-| `ai_factory.py` | Factory pattern untuk memilih AI provider (Gemini/Groq) |
-| `gemini_client.py` | Client untuk Google Gemini API |
+| `ai_factory.py` | Factory pattern untuk multi provider (tersedia, belum dipakai oleh endpoint default) |
+| `gemini_client.py` | Client untuk Google Gemini API (opsional) |
 | `groq_client.py` | Client untuk Groq API (Llama models) |
 | `middleware.py` | Security middleware (rate limiting, anti-SQL, anti-XSS) |
 | `urls.py` | Routing URL untuk AI endpoints |
@@ -205,7 +208,7 @@ Ini adalah aplikasi utama yang menangani semua fitur inventory!
 | `__init__.py` | Init file Python package |
 | `admin.py` | Konfigurasi Django Admin interface |
 | `apps.py` | Konfigurasi app Django untuk stock_manager |
-| `models.py` | **MODEL DATABASE** (Item, ShopItem, TransferItem, Admin, dll) |
+| `models.py` | **MODEL DATABASE** (Item, ShopItem, TransferItem, WasteItem, Admin, dll) |
 | `views.py` | **VIEWS &amp; BUSINESS LOGIC** (semua halaman dan API views) |
 | `urls.py` | **ROUTING URL** untuk stock_manager app |
 | `serializers.py` | **DRF SERIALIZERS** (convert model ke JSON/XML untuk API) |
@@ -223,6 +226,7 @@ Semua halaman web ada di sini!
 | `base_dashboard.html` | **BASE TEMPLATE** untuk semua halaman dashboard (sidebar, topbar, dll) |
 | `dashboard.html` | **DASHBOARD UTAMA** (charts, stats cards, recent items) |
 | `warehouse.html` | **HALAMAN STOK GUDANG** (tabel barang, search, tambah/edit) |
+| `(reuse) warehouse.html` | **HALAMAN STOK TOKO** (`/shop/` - reuse template, data dari `ShopItem`) |
 | `transfer.html` | **HALAMAN TRANSFER BARANG** (request dan approve transfer) |
 | `reports.html` | **HALAMAN LAPORAN** (charts, export Excel, print) |
 | `ai_assistant.html` | **HALAMAN AI ASSISTANT** (chat interface, insights) |
@@ -256,8 +260,8 @@ Semua file static (tidak berubah) ada di sini!
 - **Pytz 2026.2** - Timezone support
 
 ### AI &amp; Machine Learning
-- **Gemini AI** (Google) - Model: Gemini 2.5 Flash/Pro
-- **Groq API** - Model: Llama 3.1 (8B, 70B, 90B)
+- **Groq API** - Model: Llama (mode `fast|balanced|quality`)
+- **Gemini Client (opsional)** - Client ada di codebase, namun endpoint AI default saat ini memakai Groq
 
 ### Security
 - **Django Axes 8.3.1** - Brute force protection
@@ -343,6 +347,7 @@ Berikut daftar endpoint API utama:
 | Method | Endpoint | Deskripsi |
 |--------|----------|-----------|
 | GET | `/auth/user/` | Dapatkan informasi user yang login |
+| POST | `/auth/token/` | Token auth (opsional) |
 
 ### Inventory
 | Method | Endpoint | Deskripsi |
@@ -355,6 +360,15 @@ Berikut daftar endpoint API utama:
 | GET | `/api/shop_items/` | Dapatkan barang di toko |
 | GET | `/api/transfer_items/` | Dapatkan transfer barang |
 
+### Transfer Actions
+| Method | Endpoint | Deskripsi |
+|--------|----------|-----------|
+| POST | `/api/transfer/` | Tambah/update item pending transfer (shop user) |
+| POST | `/api/submit-transfer-request/` | Submit semua pending transfer (set `ordered=true` + email opsional) |
+| POST | `/api/complete-transfer/` | Approve/cancel transfer (manajer) |
+| POST | `/api/set_edit_lock_status/` | Aktif/nonaktif maintenance mode (manajer) |
+| GET | `/api/get_edit_lock_status/` | Cek maintenance mode |
+
 ### AI
 | Method | Endpoint | Deskripsi |
 |--------|----------|-----------|
@@ -366,6 +380,8 @@ Berikut daftar endpoint API utama:
 | Method | Endpoint | Deskripsi |
 |--------|----------|-----------|
 | GET | `/api/export_data/` | Export laporan ke Excel |
+| POST | `/api/import_data/` | Import data via upload Excel (manajer + tergantung konfigurasi) |
+| GET | `/api/app_config/` | Ambil konfigurasi aplikasi (records per page, dll) |
 
 ## 🔒 Security Features
 
@@ -379,12 +395,12 @@ Berikut daftar endpoint API utama:
    - HTML escaping otomatis di templates
 
 3. **Rate Limiting**
-   - Per IP: 100 requests/minute
-   - Per User (AI): 20 requests/hour
+   - Per IP (middleware): 100 requests/menit
+   - DRF throttling: `anon: 100/day`, `user: 100/second`
+   - Per user (AI): Ask 20/jam, Insights 10/jam
 
 4. **Brute Force Protection**
-   - Max 3 login attempts
-   - Cooldown 1 hour after lockout
+   - Django Axes: limit &amp; cooldown diatur via `.env` (`AXES_FAILURE_LIMIT`, `AXES_COOLOFF_TIME`)
 
 5. **CSRF Protection**
    - Django CSRF middleware
@@ -429,11 +445,18 @@ Jika Anda menemukan bug atau memiliki pertanyaan:
 
 ## 🎉 Updates
 
-### Version 1.1.0 (Current)
+### Version 1.2.0 (Current)
+- ✅ Konfigurasi aplikasi (Admin model): pagination (`records_per_page`), toggle upload &amp; email, maintenance mode
+- ✅ Endpoint konfigurasi aplikasi: `/api/app_config/`
+- ✅ Endpoint kontrol maintenance mode: `/api/set_edit_lock_status/` &amp; `/api/get_edit_lock_status/`
+- ✅ Dokumentasi endpoint transfer (submit request + complete transfer)
+- ✅ Update README agar sesuai implementasi terbaru (AI, security, pages)
+
+### Version 1.1.0
 - ✅ Update UI ke minimal Black/White/Green theme
 - ✅ Custom logout view (redirect ke landing page)
 - ✅ Add requests dependency ke startup scripts
-- ✅ Dual AI support (Gemini + Groq)
+- ✅ AI Assistant integration (Groq) + quota tracking
 - ✅ Expiry date tracking
 - ✅ Logo integration di semua halaman
 - ✅ Responsive design untuk mobile

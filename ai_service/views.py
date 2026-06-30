@@ -28,6 +28,14 @@ def ai_ask(request):
     }
     """
     try:
+        if not (
+            request.user.groups.filter(name="managers").exists()
+            or request.user.groups.filter(name="owners").exists()
+        ):
+            return Response(
+                {"error": "Permission denied."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         question = request.data.get('question')
         if not question:
             return Response(
@@ -88,6 +96,14 @@ def ai_inventory_insights(request):
     }
     """
     try:
+        if not (
+            request.user.groups.filter(name="managers").exists()
+            or request.user.groups.filter(name="owners").exists()
+        ):
+            return Response(
+                {"error": "Permission denied."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         inventory_data = request.data.get('inventory_data')
         question = request.data.get('question')
         
@@ -135,6 +151,14 @@ def ai_status(request):
     
     GET /api/ai/status/
     """
+    if not (
+        request.user.groups.filter(name="managers").exists()
+        or request.user.groups.filter(name="owners").exists()
+    ):
+        return Response(
+            {"error": "Permission denied."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
     user_id = request.user.id
     
     # Check rate limits

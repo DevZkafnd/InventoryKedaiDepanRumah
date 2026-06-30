@@ -4,8 +4,13 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout as auth_logout
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from .models import Item, ShopItem, TransferItem, Admin
-from .serializers import ItemSerializer, ShopItemSerializer, TransferItemSerializer
+from .models import Item, ShopItem, TransferItem, Admin, WasteItem
+from .serializers import (
+    ItemSerializer,
+    ShopItemSerializer,
+    TransferItemSerializer,
+    WasteItemSerializer,
+)
 from .pagination import CustomPagination
 from django.contrib.auth.models import User  # For accessing the User model
 from rest_framework.response import (
@@ -13,13 +18,14 @@ from rest_framework.response import (
 )  # For returning HTTP responses in REST framework
 from rest_framework.decorators import api_view, permission_classes
 from django.db.models.functions import Lower, Cast
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.db.models import IntegerField, Q
 from email_service.email import SendEmail
 from .utils import SpreadsheetTools
 from natsort import natsorted
+from rest_framework.exceptions import PermissionDenied
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +39,12 @@ class ItemViewSet(viewsets.ModelViewSet):
     pagination_class = CustomPagination
 
     def get_queryset(self):
+        user = self.request.user
+        if not (
+            user.groups.filter(name="managers").exists()
+            or user.groups.filter(name="owners").exists()
+        ):
+            raise PermissionDenied("Permission denied.")
         queryset = Item.objects.filter(is_active=True)
         search_query = self.request.query_params.get("search", None)
         if search_query:
@@ -62,6 +74,10 @@ class ItemViewSet(viewsets.ModelViewSet):
         return queryset
 
     def create(self, request, *args, **kwargs):
+        if not request.user.groups.filter(name="managers").exists():
+            return Response(
+                {"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN
+            )
         sku = request.data.get("sku")
         if sku:
             try:
@@ -129,7 +145,17 @@ class ShopItemViewSet(viewsets.ModelViewSet):
     pagination_class = CustomPagination
 
     def get_queryset(self):
-        queryset = ShopItem.objects.filter(shop_user=self.request.user).exclude(item=None)
+        user = self.request.user
+        if user.groups.filter(name="managers").exists() or user.groups.filter(
+            name="owners"
+        ).exists():
+            queryset = ShopItem.objects.all().exclude(item=None)
+        elif user.groups.filter(name="cashiers").exists() or user.groups.filter(
+            name="shop_users"
+        ).exists():
+            queryset = ShopItem.objects.filter(shop_user=user).exclude(item=None)
+        else:
+            raise PermissionDenied("Permission denied.")
         search_query = self.request.query_params.get("search", None)
         if search_query:
             queryset = queryset.filter(
@@ -156,6 +182,27 @@ class ShopItemViewSet(viewsets.ModelViewSet):
                     queryset = queryset.order_by(Lower(ordering))
         return queryset
 
+    def create(self, request, *args, **kwargs):
+        if not request.user.groups.filter(name="managers").exists():
+            return Response(
+                {"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN
+            )
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        if not request.user.groups.filter(name="managers").exists():
+            return Response(
+                {"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN
+            )
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if not request.user.groups.filter(name="managers").exists():
+            return Response(
+                {"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
+
 
 class TransferItemViewSet(viewsets.ModelViewSet):
     queryset = TransferItem.objects.all()
@@ -168,6 +215,8 @@ class TransferItemViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.groups.filter(name="managers").exists():
             queryset = TransferItem.objects.filter(ordered=True)
+        elif user.groups.filter(name="owners").exists():
+            queryset = TransferItem.objects.all()
         else:
             queryset = TransferItem.objects.filter(shop_user=user)
         search_query = self.request.query_params.get("search", None)
@@ -196,6 +245,59 @@ class TransferItemViewSet(viewsets.ModelViewSet):
                     queryset = queryset.order_by(Lower(ordering))
         return queryset
 
+    def create(self, request, *args, **kwargs):
+        if not request.user.groups.filter(name="managers").exists():
+            return Response(
+                {"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN
+            )
+        return super().create(request, *args, **kwargs)
+
+    def update(self, request, *args, **kwargs):
+        if not request.user.groups.filter(name="managers").exists():
+            return Response(
+                {"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN
+            )
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if not request.user.groups.filter(name="managers").exists():
+            return Response(
+                {"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
+
+
+class WasteItemViewSet(viewsets.ModelViewSet):
+    queryset = WasteItem.objects.select_related("item", "shop_user").all()
+    serializer_class = WasteItemSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = CustomPagination
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.groups.filter(name="managers").exists() or user.groups.filter(
+            name="owners"
+        ).exists():
+            queryset = WasteItem.objects.select_related("item", "shop_user").all()
+        else:
+            raise PermissionDenied("Permission denied.")
+
+        search_query = self.request.query_params.get("search", None)
+        if search_query:
+            queryset = queryset.filter(
+                Q(item__description__icontains=search_query)
+                | Q(item__sku__icontains=search_query)
+                | Q(reason__icontains=search_query)
+            )
+        return queryset.order_by("-recorded_at", "-created_at")
+
+    def create(self, request, *args, **kwargs):
+        if not request.user.groups.filter(name="managers").exists():
+            return Response(
+                {"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN
+            )
+        return super().create(request, *args, **kwargs)
+
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -218,6 +320,15 @@ def set_edit_lock_status(request):
 @csrf_exempt
 def get_edit_lock_status(request):
     if request.method == "GET":
+        if not request.user.is_authenticated:
+            return JsonResponse(
+                {"detail": "Authentication credentials were not provided."}, status=401
+            )
+        if not (
+            request.user.groups.filter(name="managers").exists()
+            or request.user.groups.filter(name="owners").exists()
+        ):
+            return JsonResponse({"detail": "Permission denied."}, status=403)
         edit_lock = Admin.is_edit_locked()
         return JsonResponse({"edit_lock": edit_lock})
     return JsonResponse({"error": "Invalid request method"}, status=400)
@@ -227,7 +338,11 @@ def get_edit_lock_status(request):
 def landing(request):
     """Landing page before login"""
     if request.user.is_authenticated:
-        return redirect('dashboard')
+        if request.user.groups.filter(name="cashiers").exists() or request.user.groups.filter(
+            name="shop_users"
+        ).exists():
+            return redirect("shop")
+        return redirect("dashboard")
     return render(request, "landing.html")
 
 # Custom Logout View
@@ -236,10 +351,33 @@ def logout_view(request):
     return redirect('landing')
 
 
+@login_required
+def post_login_redirect(request):
+    user = request.user
+    if user.groups.filter(name="cashiers").exists() or user.groups.filter(
+        name="shop_users"
+    ).exists():
+        return redirect("shop")
+    if user.groups.filter(name="owners").exists() or user.groups.filter(
+        name="managers"
+    ).exists():
+        return redirect("dashboard")
+    return HttpResponseForbidden("Permission denied.")
+
+
 # Dashboard View (main analytics page)
 @ensure_csrf_cookie
 @login_required
 def dashboard(request):
+    if request.user.groups.filter(name="cashiers").exists() or request.user.groups.filter(
+        name="shop_users"
+    ).exists():
+        return redirect("shop")
+    if not (
+        request.user.groups.filter(name="managers").exists()
+        or request.user.groups.filter(name="owners").exists()
+    ):
+        return HttpResponseForbidden("Permission denied.")
     return render(request, "dashboard.html")
 
 
@@ -247,6 +385,8 @@ def dashboard(request):
 @ensure_csrf_cookie
 @login_required
 def warehouse(request):
+    if not request.user.groups.filter(name="managers").exists():
+        return HttpResponseForbidden("Permission denied.")
     return render(request, "warehouse.html")
 
 
@@ -254,13 +394,26 @@ def warehouse(request):
 @ensure_csrf_cookie
 @login_required
 def shop(request):
-    return render(request, "warehouse.html")  # Reuse same template for now
+    if not (
+        request.user.groups.filter(name="cashiers").exists()
+        or request.user.groups.filter(name="shop_users").exists()
+        or request.user.groups.filter(name="managers").exists()
+    ):
+        return HttpResponseForbidden("Permission denied.")
+    return render(request, "shop.html")
 
 
 # Transfer View
 @ensure_csrf_cookie
 @login_required
 def transfer(request):
+    if not (
+        request.user.groups.filter(name="cashiers").exists()
+        or request.user.groups.filter(name="shop_users").exists()
+        or request.user.groups.filter(name="managers").exists()
+        or request.user.groups.filter(name="owners").exists()
+    ):
+        return HttpResponseForbidden("Permission denied.")
     return render(request, "transfer.html")
 
 
@@ -268,13 +421,34 @@ def transfer(request):
 @ensure_csrf_cookie
 @login_required
 def reports(request):
+    if not (
+        request.user.groups.filter(name="managers").exists()
+        or request.user.groups.filter(name="owners").exists()
+    ):
+        return HttpResponseForbidden("Permission denied.")
     return render(request, "reports.html")
+
+
+@ensure_csrf_cookie
+@login_required
+def waste(request):
+    user = request.user
+    is_manager = user.groups.filter(name="managers").exists()
+    is_owner = user.groups.filter(name="owners").exists()
+    if not (is_manager or is_owner):
+        return HttpResponseForbidden("Permission denied.")
+    return render(request, "waste.html", {"can_create_waste": is_manager})
 
 
 # AI Assistant View
 @ensure_csrf_cookie
 @login_required
 def ai_assistant(request):
+    if not (
+        request.user.groups.filter(name="managers").exists()
+        or request.user.groups.filter(name="owners").exists()
+    ):
+        return HttpResponseForbidden("Permission denied.")
     return render(request, "ai_assistant.html")
 
 
@@ -282,6 +456,11 @@ def ai_assistant(request):
 @ensure_csrf_cookie
 @login_required
 def index(request):
+    if not (
+        request.user.groups.filter(name="managers").exists()
+        or request.user.groups.filter(name="owners").exists()
+    ):
+        return HttpResponseForbidden("Permission denied.")
     return render(request, "index.html")
 
 
@@ -304,6 +483,25 @@ def get_user(request):
     )
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def transfer_catalog(request):
+    user = request.user
+    if not (
+        user.groups.filter(name="cashiers").exists()
+        or user.groups.filter(name="shop_users").exists()
+        or user.groups.filter(name="managers").exists()
+        or user.groups.filter(name="owners").exists()
+    ):
+        return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
+    items = (
+        Item.objects.filter(is_active=True)
+        .values("sku", "description", "quantity")
+        .order_by("sku")
+    )
+    return Response(list(items))
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def transfer_item(request):
@@ -315,8 +513,11 @@ def transfer_item(request):
             },
             status=status.HTTP_403_FORBIDDEN,
         )
-    if not request.user.groups.filter(name="shop_users").exists():
-        logger.debug("Permission denied: user is not in shop_users group.")
+    if not (
+        request.user.groups.filter(name="cashiers").exists()
+        or request.user.groups.filter(name="shop_users").exists()
+    ):
+        logger.debug("Permission denied: user is not in cashier group.")
         return Response(
             {"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN
         )
@@ -393,6 +594,13 @@ def transfer_to_shop(
 @permission_classes([IsAuthenticated])
 def submit_transfer_request(request):
     try:
+        if not (
+            request.user.groups.filter(name="cashiers").exists()
+            or request.user.groups.filter(name="shop_users").exists()
+        ):
+            return Response(
+                {"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN
+            )
         if not Admin.is_edit_locked():
             queryset = TransferItem.objects.filter(
                 shop_user=request.user.id, ordered=False
@@ -449,9 +657,9 @@ def complete_transfer(request):
         return Response(
             {"detail": "Shop user not found."}, status=status.HTTP_400_BAD_REQUEST
         )
-    if not request.user.groups.filter(name="managers").exists() and not cancel:
+    if not request.user.groups.filter(name="managers").exists():
         return Response(
-            {"detail": "Permission denied. User is not in managers group."},
+            {"detail": "Permission denied."},
             status=status.HTTP_403_FORBIDDEN,
         )
     try:
@@ -480,6 +688,11 @@ def complete_transfer(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def app_config(request):
+    if not (
+        request.user.groups.filter(name="managers").exists()
+        or request.user.groups.filter(name="owners").exists()
+    ):
+        return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
     config = Admin.objects.first()
     return Response({
         "records_per_page": config.records_per_page if config else 25,
@@ -496,9 +709,9 @@ def export_data_excel(request):
     """
     if not (
         request.user.groups.filter(name="managers").exists()
-        or request.user.groups.filter(name="shop_users").exists()
+        or request.user.groups.filter(name="owners").exists()
     ):
-        logger.debug("Permission denied: user is not in shop_users or managers group.")
+        logger.debug("Permission denied: user is not in owners or managers group.")
         return Response(
             {"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN
         )

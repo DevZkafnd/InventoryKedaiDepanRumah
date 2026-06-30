@@ -1,0 +1,273 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}Waste Management{% endblock %}
+
+{% block page_icon %}bi-trash3{% endblock %}
+{% block page_title %}Waste Management{% endblock %}
+
+{% block content %}
+<div class="content-area">
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-lg-5">
+            <div class="table-card p-4">
+                <h5 class="mb-3" style="font-weight: 700; color: #000;">Catat Waste / Spoil</h5>
+                <div class="mb-3">
+                    <label class="form-label">Barang (SKU)</label>
+                    <select class="form-select" id="wasteItemSku"></select>
+                    <div class="form-text" id="wasteItemDesc" style="color:#555;"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Sumber</label>
+                    <select class="form-select" id="wasteSource">
+                        <option value="warehouse">Gudang</option>
+                        <option value="shop">Toko</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Qty</label>
+                    <input type="number" min="1" class="form-control" id="wasteQty" placeholder="contoh: 2">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Alasan/Keterangan</label>
+                    <input type="text" class="form-control" id="wasteReason" placeholder="contoh: Basi / Rusak / Expired">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Tanggal Pencatatan</label>
+                    <input type="date" class="form-control" id="wasteRecordedAt">
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn" id="btnSubmitWaste" style="background-color: #10b981; color: white; flex:1;">
+                        <i class="bi bi-check2-circle me-2"></i>Simpan
+                    </button>
+                    <button class="btn btn-outline-dark" id="btnResetWaste">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                </div>
+                <div class="mt-3" id="wasteFormAlert"></div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-7">
+            <div class="table-card p-4">
+                <div class="toolbar mb-3">
+                    <div class="search-box">
+                        <i class="bi bi-search"></i>
+                        <input type="text" class="form-control" placeholder="Cari SKU / deskripsi / alasan..." id="searchWaste">
+                    </div>
+                    <div class="toolbar-actions">
+                        <button class="btn btn-outline-dark" id="btnRefreshWaste">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>SKU</th>
+                                <th>Barang</th>
+                                <th>Sumber</th>
+                                <th>Qty</th>
+                                <th>Alasan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="wasteTableBody">
+                            <tr>
+                                <td colspan="6" class="text-center py-5">
+                                    <div class="spinner-border" style="color: #10b981;" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const canCreateWaste = {{ can_create_waste|yesno:"true,false" }};
+
+function showWasteAlert(type, message) {
+    const klass = type === 'success' ? 'alert-success' : 'alert-danger';
+    $('#wasteFormAlert').html(`<div class="alert ${klass} mb-0" role="alert">${message}</div>`);
+}
+
+function clearWasteAlert() {
+    $('#wasteFormAlert').empty();
+}
+
+function setDefaultDate() {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    $('#wasteRecordedAt').val(`${yyyy}-${mm}-${dd}`);
+}
+
+function resetWasteForm() {
+    $('#wasteQty').val('');
+    $('#wasteReason').val('');
+    $('#wasteSource').val('warehouse');
+    setDefaultDate();
+    clearWasteAlert();
+}
+
+function setFormEnabled(enabled) {
+    $('#wasteItemSku').prop('disabled', !enabled);
+    $('#wasteSource').prop('disabled', !enabled);
+    $('#wasteQty').prop('disabled', !enabled);
+    $('#wasteReason').prop('disabled', !enabled);
+    $('#wasteRecordedAt').prop('disabled', !enabled);
+    $('#btnSubmitWaste').prop('disabled', !enabled);
+}
+
+function loadItemsForDropdown() {
+    $.ajax({
+        url: '/api/items/?page_size=100',
+        method: 'GET',
+        success: function(data) {
+            const items = data.results || [];
+            if (!items.length) {
+                $('#wasteItemSku').html('<option value="">Tidak ada item</option>');
+                return;
+            }
+            let html = '<option value="">Pilih SKU...</option>';
+            items.forEach(item => {
+                html += `<option value="${item.sku}" data-desc="${(item.description || '').replace(/"/g, '&quot;')}">${item.sku}</option>`;
+            });
+            $('#wasteItemSku').html(html);
+        },
+        error: function() {
+            $('#wasteItemSku').html('<option value="">Gagal memuat item</option>');
+        }
+    });
+}
+
+function updateSelectedItemDesc() {
+    const selected = $('#wasteItemSku option:selected');
+    const desc = selected.data('desc') || '';
+    $('#wasteItemDesc').text(desc);
+}
+
+function loadWaste() {
+    $.ajax({
+        url: '/api/waste_items/',
+        method: 'GET',
+        success: function(data) {
+            const items = data.results || [];
+            renderWasteTable(items);
+        },
+        error: function(xhr) {
+            const msg = xhr && xhr.responseJSON && (xhr.responseJSON.detail || xhr.responseJSON.error) ? (xhr.responseJSON.detail || xhr.responseJSON.error) : 'Gagal memuat data';
+            $('#wasteTableBody').html(`<tr><td colspan="6" class="text-center py-5" style="color: #000;">${msg}</td></tr>`);
+        }
+    });
+}
+
+function renderWasteTable(items) {
+    if (!items.length) {
+        $('#wasteTableBody').html('<tr><td colspan="6" class="text-center py-5" style="color: #555;">Belum ada catatan waste</td></tr>');
+        return;
+    }
+    let html = '';
+    items.forEach(w => {
+        const dateText = w.recorded_at ? new Date(w.recorded_at).toLocaleDateString('id-ID') : '-';
+        const sourceText = w.source === 'shop' ? 'Toko' : 'Gudang';
+        const qtyBadgeColor = '#000000';
+        html += `
+            <tr>
+                <td>${dateText}</td>
+                <td><span class="badge" style="background-color: #f0f0f0; color: #000;">${w.item}</span></td>
+                <td>${w.item_description || '-'}</td>
+                <td><span class="badge" style="background-color: #555555; color: white;">${sourceText}</span></td>
+                <td><span class="badge" style="background-color: ${qtyBadgeColor}; color: white;">${w.quantity}</span></td>
+                <td>${w.reason || '-'}</td>
+            </tr>
+        `;
+    });
+    $('#wasteTableBody').html(html);
+}
+
+function submitWaste() {
+    clearWasteAlert();
+    const sku = $('#wasteItemSku').val();
+    const quantity = $('#wasteQty').val();
+    const reason = $('#wasteReason').val();
+    const recordedAt = $('#wasteRecordedAt').val();
+    const source = $('#wasteSource').val();
+
+    if (!canCreateWaste) {
+        showWasteAlert('error', 'Hanya manajer yang bisa mencatat waste.');
+        return;
+    }
+    if (!sku) {
+        showWasteAlert('error', 'Pilih SKU terlebih dahulu.');
+        return;
+    }
+    if (!quantity || parseInt(quantity, 10) <= 0) {
+        showWasteAlert('error', 'Qty harus lebih dari 0.');
+        return;
+    }
+    if (!reason) {
+        showWasteAlert('error', 'Alasan/keterangan wajib diisi.');
+        return;
+    }
+    if (!recordedAt) {
+        showWasteAlert('error', 'Tanggal pencatatan wajib diisi.');
+        return;
+    }
+
+    $.ajax({
+        url: '/api/waste_items/',
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        contentType: 'application/json',
+        data: JSON.stringify({
+            item: sku,
+            quantity: parseInt(quantity, 10),
+            reason: reason,
+            recorded_at: recordedAt,
+            source: source
+        }),
+        success: function() {
+            showWasteAlert('success', 'Catatan waste berhasil disimpan.');
+            resetWasteForm();
+            loadWaste();
+        },
+        error: function(xhr) {
+            const msg = xhr && xhr.responseJSON && (xhr.responseJSON.detail || xhr.responseJSON.error) ? (xhr.responseJSON.detail || xhr.responseJSON.error) : 'Gagal menyimpan waste';
+            showWasteAlert('error', msg);
+        }
+    });
+}
+
+$(document).ready(function() {
+    setDefaultDate();
+    setFormEnabled(canCreateWaste);
+    if (!canCreateWaste) {
+        showWasteAlert('error', 'Mode read-only: hanya manajer yang bisa mencatat waste.');
+    }
+    loadItemsForDropdown();
+    loadWaste();
+
+    $('#wasteItemSku').on('change', updateSelectedItemDesc);
+    $('#btnSubmitWaste').on('click', submitWaste);
+    $('#btnResetWaste').on('click', resetWasteForm);
+    $('#btnRefreshWaste').on('click', loadWaste);
+
+    $('#searchWaste').on('input', function() {
+        const query = $(this).val().toLowerCase();
+        $('#wasteTableBody tr').each(function() {
+            const text = $(this).text().toLowerCase();
+            $(this).toggle(text.indexOf(query) > -1);
+        });
+    });
+});
+</script>
+{% endblock %}
+

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Item, ShopItem, TransferItem
+from .models import Item, ShopItem, TransferItem, WasteItem
 from django.contrib.auth.models import User
 import re
 
@@ -61,4 +61,24 @@ class TransferItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TransferItem
-        fields = ["shop_user", "item", "quantity", "ordered", "last_updated"]
+        fields = ["id", "shop_user", "item", "quantity", "ordered", "last_updated", "created_at"]
+
+
+class WasteItemSerializer(serializers.ModelSerializer):
+    item = serializers.SlugRelatedField(slug_field="sku", queryset=Item.objects.all())
+    item_description = serializers.CharField(source="item.description", read_only=True)
+    shop_username = serializers.CharField(source="shop_user.username", read_only=True)
+
+    class Meta:
+        model = WasteItem
+        fields = [
+            "id",
+            "item",
+            "item_description",
+            "source",
+            "shop_username",
+            "quantity",
+            "reason",
+            "recorded_at",
+            "created_at",
+        ]

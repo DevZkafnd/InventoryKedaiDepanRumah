@@ -98,7 +98,7 @@ class SpreadsheetTools:
         Generate an Excel workbook containing two sheets.
         - 'Warehouse Stock' for Items.
         - 'Shop Stock' for ShopItems.
-        The user must be in either the 'managers' or 'shop_users' group.
+        The user must be in either the 'managers' or 'owners' group.
         """
         workbook = Workbook()
         # Create the 'Warehouse Stock' sheet
@@ -131,7 +131,9 @@ class SpreadsheetTools:
         shop_item_sheet.append(shop_item_header)
 
         # If user is not a manager, limit the queryset
-        is_manager = self.user.groups.filter(name="managers").exists()
+        is_manager = self.user.groups.filter(name="managers").exists() or self.user.groups.filter(
+            name="owners"
+        ).exists()
         queryset = ShopItem.objects.select_related(*shop_item_relation_fields).only(
             *shop_item_retrieved_fields
         )
@@ -299,18 +301,6 @@ class SpreadsheetTools:
                 # --- Deactivate warehouse items not present in the spreadsheet if deletions allowed ---
                 if Admin.is_allow_upload_deletions():
                     Item.objects.filter(is_active=True).exclude(sku__in=excel_item_skus).update(is_active=False)
-                if "Shop Stock" not in workbook.sheetnames:
-                    try:
-                        converted = self.convert_custom_incoming_format(workbook)
-                        if "Shop Stock" in converted.sheetnames:
-                            workbook = converted
-                    except Exception as e:
-                        logger.error(
-                            "Custom conversion failed for Shop Stock: %s",
-                            e,
-                            exc_info=True,
-                        )
-                        return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
                 if "Shop Stock" in workbook.sheetnames:
                     shop_item_sheet = workbook["Shop Stock"]
                     headers = [

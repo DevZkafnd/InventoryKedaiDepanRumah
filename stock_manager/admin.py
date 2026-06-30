@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.apps import AppConfig
-from .models import Admin
+from .models import Admin, WasteItem
 
 admin.site.site_header = "Administrasi Kedai Depan Rumah"
 admin.site.site_title = "Inventory Kedai Depan Rumah"
@@ -11,3 +11,4 @@ class AdminAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Admin, AdminAdmin)
+admin.site.register(WasteItem)
