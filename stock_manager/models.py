@@ -21,24 +21,29 @@ class Admin(models.Model):
         verbose_name_plural = "Konfigurasi Aplikasi"
 
     @staticmethod
+    def get_solo():
+        config, _ = Admin.objects.get_or_create(id=1)
+        return config
+
+    @staticmethod
     def is_edit_locked():
-        return Admin.objects.values_list("edit_lock", flat=True)[0]
+        return Admin.get_solo().edit_lock
 
     @staticmethod
     def is_allow_updoads():
-        return Admin.objects.values_list("allow_uploads", flat=True)[0]
+        return Admin.get_solo().allow_uploads
 
     @staticmethod
     def is_allow_upload_deletions():
-        return Admin.objects.values_list("allow_upload_deletions", flat=True)[0]
+        return Admin.get_solo().allow_upload_deletions
 
     @staticmethod
     def is_allow_email_notifications():
-        return Admin.objects.values_list("allow_email_notifications", flat=True)[0]
+        return Admin.get_solo().allow_email_notifications
 
     @staticmethod
     def get_records_per_page():
-        return Admin.objects.values_list("records_per_page", flat=True)[0]
+        return Admin.get_solo().records_per_page
 
     def __str__(self):
         return f"Configuration Options"

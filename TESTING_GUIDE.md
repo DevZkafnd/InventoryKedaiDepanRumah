@@ -28,6 +28,89 @@ python manage.py runserver
 - ✅ Form login muncul
 - ✅ Login berhasil redirect ke `/dashboard/`
 
+## ✅ Pengujian Wajib Skripsi (BAB I & BAB III)
+
+Bagian ini berisi test case yang wajib ada sebagai bukti pengujian untuk fitur keamanan dan kebutuhan sistem yang disebut eksplisit pada skripsi.
+
+### TC-SEC-AXES-01 — Django Axes Lockout (Brute Force Login)
+**Tujuan:** Membuktikan percobaan login salah berulang memicu lockout.
+
+- Pre-condition:
+  - `AXES_FAILURE_LIMIT` dan `AXES_COOLOFF_TIME` sudah terisi di `.env` (lihat `.env_default`)
+- Steps:
+  1. Buka `http://127.0.0.1:8000/accounts/logout/` (pastikan session bersih)
+  2. Buka `http://127.0.0.1:8000/accounts/login/`
+  3. Username: `admin`
+  4. Input password salah sebanyak `AXES_FAILURE_LIMIT` kali berturut-turut
+  5. Coba login lagi pakai password benar `admin123`
+- Expected:
+  - Percobaan login setelah melewati limit ditolak (umumnya status 429 / lockout)
+  - Selama masa cooloff, login tetap diblok meskipun password benar
+- Evidence:
+  - Screenshot pesan error lockout di halaman login
+  - Log Axes di console server (muncul “AXES: Locking out…”)
+
+### TC-MNT-01 — Maintenance Mode Mengunci Transfer Kasir
+**Tujuan:** Membuktikan manajer bisa mengunci sementara operasi transfer saat pemeliharaan.
+
+- Steps:
+  1. Login sebagai manajer (`admin / admin123`)
+  2. Aktifkan maintenance mode via API:
+     - Buka `http://127.0.0.1:8000/api/set_edit_lock_status/` (DRF browsable)
+     - POST body: `{"edit_lock_status": true}`
+  3. Login sebagai kasir (`kasir1 / kasir123`)
+  4. Buka `http://127.0.0.1:8000/transfer/`, coba **Tambah** atau **Submit**
+- Expected:
+  - Transfer kasir ditolak (403) dengan pesan maintenance
+- Evidence:
+  - Screenshot alert error / response 403
+
+### TC-IMP-01 — Import Excel (Upload Data Massal) Berhasil
+**Tujuan:** Membuktikan manajer bisa upload Excel untuk menambahkan SKU baru.
+
+- Pre-condition:
+  - Konfigurasi `allow_uploads = true` di “Konfigurasi Aplikasi” (Admin config)
+- Steps:
+  1. Login sebagai manajer (`admin / admin123`)
+  2. Siapkan file `.xlsx` dengan sheet **Warehouse Stock** berisi header:
+     - `SKU`, `Description`, `Purchase Price`, `Quantity`, `Expiry Date`
+  3. Upload ke endpoint:
+     - `http://127.0.0.1:8000/api/import_data/`
+  4. Setelah upload sukses, buka `/warehouse/` dan cari SKU baru
+- Expected:
+  - Response 200 (“Data has been processed according to configuration.”)
+  - SKU baru muncul di gudang
+- Evidence:
+  - Screenshot response sukses upload
+  - Screenshot SKU baru tampil di tabel gudang
+
+### TC-AI-RL-01 — AI Rate Limiting (Melebihi Kuota)
+**Tujuan:** Membuktikan sistem menolak request AI ketika melebihi kuota per jam.
+
+- Steps:
+  1. Login sebagai owner atau manajer
+  2. Buka `http://127.0.0.1:8000/api/ai/status/` untuk lihat quota
+  3. Kirim request berulang ke:
+     - `POST http://127.0.0.1:8000/api/ai/ask/`
+     - sampai melewati batas (20/jam)
+- Expected:
+  - Setelah melebihi kuota: HTTP 429 dengan pesan “Rate limit exceeded…”
+- Evidence:
+  - Screenshot response 429
+  - Screenshot `/api/ai/status/` menunjukkan quota berkurang/habis
+
+### TC-EXP-01 — Expiry Date Tersimpan & Tampil
+**Tujuan:** Membuktikan atribut expiry_date pada Item berjalan sesuai class diagram.
+
+- Steps:
+  1. Login sebagai manajer
+  2. Buka `/warehouse/` → Tambah barang baru dengan tanggal kadaluarsa (atau edit barang yang ada)
+  3. Pastikan kolom “Tanggal Kadaluarsa” menampilkan tanggal yang diinput
+- Expected:
+  - Tanggal kadaluarsa tersimpan dan tampil di tabel gudang
+- Evidence:
+  - Screenshot item dengan expiry date tampil
+
 ### 4. Test Dashboard (Main Page)
 - URL: `http://127.0.0.1:8000/dashboard/`
 - Check browser console (F12):
@@ -125,6 +208,11 @@ POST /api/... 403 (Forbidden)
 - [ ] CSRF token works
 - [ ] Login/logout works
 - [ ] Permissions work (managers vs cashiers)
+- [ ] Django Axes lockout works (brute force → lockout)
+- [ ] Maintenance mode blocks transfer for cashier
+- [ ] Import Excel upload works (adds SKU)
+- [ ] AI rate limiting works (429 after quota)
+- [ ] Expiry date works (stored & displayed)
 
 ### Browser Compatibility
 - [ ] Chrome/Edge (Chromium)
@@ -221,6 +309,6 @@ Stok Habis: 2      (quantity = 0)
 
 ---
 
-Last Updated: 2026-06-23
+Last Updated: 2026-07-01
 Server: http://127.0.0.1:8000
 Status: ✅ All tests passing

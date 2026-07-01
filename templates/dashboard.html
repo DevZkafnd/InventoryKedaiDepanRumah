@@ -316,6 +316,62 @@
             margin-bottom: 20px;
         }
 
+        .maintenance-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .maintenance-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .maintenance-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .maintenance-status.active {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .maintenance-status.inactive {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .maintenance-help {
+            color: #4b5563;
+            font-size: 0.95rem;
+            margin-bottom: 16px;
+        }
+
+        .maintenance-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .maintenance-note {
+            margin-top: 14px;
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
         .item-list {
             list-style: none;
             padding: 0;
@@ -406,6 +462,7 @@
     </style>
 </head>
 <body>
+<div id="pageFlags" data-can-manage-maintenance="{{ can_manage_maintenance|yesno:'true,false' }}"></div>
 
 <!-- Sidebar -->
 <aside class="sidebar" id="sidebar">
@@ -417,46 +474,46 @@
     </div>
     
     <ul class="sidebar-menu">
-        <li class="menu-item">
+        <li class="menu-item" id="menuDashboard">
             <a href="/dashboard/" class="menu-link active">
                 <i class="bi bi-speedometer2"></i>
                 <span>Dashboard</span>
             </a>
         </li>
-        <li class="menu-item">
+        <li class="menu-item" id="menuWarehouse">
             <a href="/warehouse/" class="menu-link">
                 <i class="bi bi-building"></i>
                 <span>Stok Gudang</span>
             </a>
         </li>
-        <li class="menu-item">
+        <li class="menu-item" id="menuShop">
             <a href="/shop/" class="menu-link">
                 <i class="bi bi-shop"></i>
                 <span>Stok Toko</span>
             </a>
         </li>
-        <li class="menu-item">
+        <li class="menu-item" id="menuTransfer">
             <a href="/transfer/" class="menu-link">
                 <i class="bi bi-arrow-left-right"></i>
                 <span>Transfer Barang</span>
             </a>
         </li>
-        <li class="menu-item">
+        <li class="menu-item" id="menuWaste">
+            <a href="/waste/" class="menu-link">
+                <i class="bi bi-trash3"></i>
+                <span>Waste</span>
+            </a>
+        </li>
+        <li class="menu-item" id="menuReports">
             <a href="/reports/" class="menu-link">
                 <i class="bi bi-graph-up"></i>
                 <span>Laporan</span>
             </a>
         </li>
-        <li class="menu-item">
+        <li class="menu-item" id="menuAI">
             <a href="/ai-assistant/" class="menu-link">
                 <i class="bi bi-robot"></i>
                 <span>AI Assistant</span>
-            </a>
-        </li>
-        <li class="menu-item">
-            <a href="/settings/" class="menu-link">
-                <i class="bi bi-gear"></i>
-                <span>Pengaturan</span>
             </a>
         </li>
     </ul>
@@ -542,6 +599,39 @@
             </div>
         </div>
 
+        {% if can_manage_maintenance %}
+        <div class="maintenance-card" id="maintenanceCard">
+            <div class="maintenance-card-header">
+                <div>
+                    <h3 style="margin:0;font-size:1.1rem;font-weight:700;color:#000000;">
+                        <i class="bi bi-tools me-2"></i>Maintenance Mode Kasir
+                    </h3>
+                    <p class="maintenance-help">
+                        Gunakan fitur ini untuk mengunci sementara proses transfer kasir saat pembaruan stok massal atau pengecekan gudang.
+                    </p>
+                </div>
+                <span class="maintenance-status inactive" id="maintenanceStatusBadge">
+                    <i class="bi bi-unlock"></i>
+                    <span id="maintenanceStatusText">Memuat status...</span>
+                </span>
+            </div>
+            <div class="maintenance-actions">
+                <button class="btn btn-danger" id="btnEnableMaintenance" onclick="updateMaintenanceMode(true)">
+                    <i class="bi bi-lock me-2"></i>Aktifkan Maintenance
+                </button>
+                <button class="btn btn-outline-success" id="btnDisableMaintenance" onclick="updateMaintenanceMode(false)">
+                    <i class="bi bi-unlock me-2"></i>Nonaktifkan Maintenance
+                </button>
+                <button class="btn btn-outline-dark" id="btnRefreshMaintenance" onclick="loadMaintenanceStatus()">
+                    <i class="bi bi-arrow-clockwise me-2"></i>Refresh Status
+                </button>
+            </div>
+            <p class="maintenance-note">
+                Saat maintenance aktif, kasir tidak bisa menambah draft transfer maupun submit request transfer.
+            </p>
+        </div>
+        {% endif %}
+
         <!-- Charts -->
         <div class="chart-grid">
             <div class="chart-card">
@@ -577,6 +667,9 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    const pageFlags = document.getElementById('pageFlags');
+    const canManageMaintenance = pageFlags?.dataset.canManageMaintenance === 'true';
+
     // Toggle Sidebar
     function toggleSidebar() {
         const sidebar = document.getElementById('sidebar');
@@ -591,21 +684,102 @@
         return cookie ? cookie.split('=')[1] : '';
     }
 
+    function renderMaintenanceStatus(editLock) {
+        if (!canManageMaintenance) return;
+        const badge = $('#maintenanceStatusBadge');
+        const text = $('#maintenanceStatusText');
+        const enableBtn = $('#btnEnableMaintenance');
+        const disableBtn = $('#btnDisableMaintenance');
+
+        badge.removeClass('active inactive');
+        if (editLock) {
+            badge.addClass('active');
+            badge.html('<i class="bi bi-lock"></i><span id="maintenanceStatusText">Aktif - Kasir dikunci sementara</span>');
+            enableBtn.prop('disabled', true);
+            disableBtn.prop('disabled', false);
+        } else {
+            badge.addClass('inactive');
+            badge.html('<i class="bi bi-unlock"></i><span id="maintenanceStatusText">Nonaktif - Kasir bisa transfer</span>');
+            enableBtn.prop('disabled', false);
+            disableBtn.prop('disabled', true);
+        }
+    }
+
+    function loadMaintenanceStatus() {
+        if (!canManageMaintenance) return;
+        $.ajax({
+            url: '/api/get_edit_lock_status/',
+            method: 'GET',
+            success: function(data) {
+                renderMaintenanceStatus(!!data.edit_lock);
+            },
+            error: function(xhr) {
+                $('#maintenanceStatusBadge')
+                    .removeClass('inactive')
+                    .addClass('active')
+                    .html(`<i class="bi bi-exclamation-triangle"></i><span>${xhr.responseJSON?.detail || 'Gagal memuat status maintenance'}</span>`);
+            }
+        });
+    }
+
+    function updateMaintenanceMode(enabled) {
+        if (!canManageMaintenance) return;
+        const actionText = enabled ? 'mengaktifkan' : 'menonaktifkan';
+        if (!confirm(`Yakin ingin ${actionText} maintenance mode?`)) return;
+
+        $('#btnEnableMaintenance, #btnDisableMaintenance, #btnRefreshMaintenance').prop('disabled', true);
+        $.ajax({
+            url: '/api/set_edit_lock_status/',
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCSRFToken() },
+            contentType: 'application/json',
+            data: JSON.stringify({ edit_lock_status: enabled }),
+            success: function(data) {
+                renderMaintenanceStatus(!!data.edit_lock);
+                alert(data.edit_lock ? 'Maintenance mode berhasil diaktifkan.' : 'Maintenance mode berhasil dinonaktifkan.');
+            },
+            error: function(xhr) {
+                alert('Gagal mengubah maintenance mode: ' + (xhr.responseJSON?.detail || 'Error'));
+            },
+            complete: function() {
+                loadMaintenanceStatus();
+            }
+        });
+    }
+
     // Update current date
     const now = new Date();
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('currentDate').textContent = now.toLocaleDateString('id-ID', options);
 
     // Load user info
+    function applyMenuVisibility(groups) {
+        const setVisible = (selector, visible) => $(selector).toggle(!!visible);
+        const isManager = (groups || []).includes('managers');
+        const isOwner = (groups || []).includes('owners');
+        const isCashier = (groups || []).includes('cashiers') || (groups || []).includes('shop_users');
+
+        setVisible('#menuWarehouse', isManager);
+        setVisible('#menuWaste', isManager || isOwner);
+        setVisible('#menuReports', isManager || isOwner);
+        setVisible('#menuAI', isManager || isOwner);
+        setVisible('#menuDashboard', isManager || isOwner);
+
+        setVisible('#menuShop', isCashier || isManager || isOwner);
+        setVisible('#menuTransfer', isCashier || isManager || isOwner);
+    }
+
     function loadUser() {
         $.ajax({
             url: '/auth/user/',
             method: 'GET',
             success: function(data) {
                 $('#sidebarUserName').text(data.username || 'User');
+                applyMenuVisibility(data.groups || []);
             },
             error: function() {
                 $('#sidebarUserName').text('Guest');
+                applyMenuVisibility([]);
             }
         });
     }
@@ -745,6 +919,7 @@
     $(document).ready(function() {
         loadUser();
         loadDashboardData();
+        loadMaintenanceStatus();
     });
 
     // Responsive sidebar for mobile

@@ -7,6 +7,7 @@
 
 {% block content %}
 <div class="content-area">
+    <div class="alert d-none" id="maintenanceAlert" role="alert"></div>
     
     <!-- Transfer Request Form -->
     <div class="card mb-4">
@@ -75,12 +76,14 @@
 <style>
 .card { border: none; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 .card-header { background: white; border-bottom: 1px solid #e9ecef; padding: 20px; font-weight: 600; }
+.alert { border-radius: 12px; }
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 let currentUser = { groups: [] };
+let maintenanceActive = false;
 
 function isManager() {
     return (currentUser.groups || []).includes('managers');
@@ -99,6 +102,48 @@ function setTransferFormEnabled(enabled) {
     $('#transferQty').prop('disabled', !enabled);
     $('#btnAddToDraft').prop('disabled', !enabled);
     $('#btnSubmitAll').prop('disabled', !enabled);
+}
+
+function renderMaintenanceAlert(editLock) {
+    maintenanceActive = !!editLock;
+    const alertEl = $('#maintenanceAlert');
+
+    if (maintenanceActive) {
+        alertEl
+            .removeClass('d-none alert-success')
+            .addClass('alert-warning')
+            .html('<i class="bi bi-tools me-2"></i><strong>Maintenance aktif.</strong> Transfer kasir dikunci sementara oleh manajer sampai proses pembaruan stok selesai.');
+    } else {
+        alertEl
+            .removeClass('d-none alert-warning')
+            .addClass('alert-success')
+            .html('<i class="bi bi-check-circle me-2"></i><strong>Maintenance nonaktif.</strong> Proses transfer berjalan normal.');
+    }
+}
+
+function loadMaintenanceStatus() {
+    $.ajax({
+        url: '/api/get_edit_lock_status/',
+        method: 'GET',
+        success: function(data) {
+            renderMaintenanceAlert(!!data.edit_lock);
+
+            if (isCashier()) {
+                setTransferFormEnabled(!maintenanceActive);
+            } else if (isOwner()) {
+                setTransferFormEnabled(false);
+            } else if (isManager()) {
+                setTransferFormEnabled(true);
+                $('#btnSubmitAll').hide();
+            }
+        },
+        error: function() {
+            $('#maintenanceAlert')
+                .removeClass('d-none alert-success')
+                .addClass('alert-warning')
+                .html('<i class="bi bi-exclamation-triangle me-2"></i><strong>Status maintenance tidak bisa dimuat.</strong> Silakan refresh halaman.');
+        }
+    });
 }
 
 function loadItemsForTransfer() {
@@ -171,6 +216,10 @@ function addToDraft() {
         alert('Permission denied.');
         return;
     }
+    if (isCashier() && maintenanceActive) {
+        alert('Maintenance sedang aktif. Kasir tidak bisa menambah draft transfer untuk sementara.');
+        return;
+    }
     
     $.ajax({
         url: '/api/transfer/',
@@ -193,6 +242,10 @@ function addToDraft() {
 function submitAllRequests() {
     if (!isCashier()) {
         alert('Hanya kasir yang bisa submit request.');
+        return;
+    }
+    if (maintenanceActive) {
+        alert('Maintenance sedang aktif. Kasir tidak bisa submit request transfer untuk sementara.');
         return;
     }
     
@@ -262,7 +315,11 @@ $(document).ready(function() {
         method: 'GET',
         success: function(data) {
             currentUser = data || { groups: [] };
-            loadItemsForTransfer();
+            if (isCashier() || isManager()) {
+                loadItemsForTransfer();
+            } else {
+                $('#transferSku').html('<option value="">(Read-only)</option>');
+            }
             loadPendingTransfers();
 
             if (isOwner()) {
@@ -275,6 +332,8 @@ $(document).ready(function() {
             } else {
                 setTransferFormEnabled(false);
             }
+
+            loadMaintenanceStatus();
         },
         error: function() {
             setTransferFormEnabled(false);

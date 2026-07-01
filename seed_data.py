@@ -37,8 +37,12 @@ def seed():
         print("[OK] Superuser 'admin' dibuat  (password: admin123)")
     else:
         admin_user = User.objects.get(username="admin")
+        admin_user.is_staff = True
+        admin_user.is_superuser = True
+        admin_user.set_password("admin123")
+        admin_user.save()
         admin_user.groups.add(managers_group)
-        print("[--] Superuser 'admin' sudah ada")
+        print("[--] Superuser 'admin' sudah ada (dipastikan staff/superuser, password: admin123)")
 
     # ── 3. Owner (read-only pengawasan) ───────────────────────
     if not User.objects.filter(username="owner1").exists():

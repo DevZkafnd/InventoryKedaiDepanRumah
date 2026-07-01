@@ -101,7 +101,11 @@ class ItemViewSet(viewsets.ModelViewSet):
             return Response(
                 {"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN
             )
-        sku = request.data.get("sku")
+        sku = request.data.get("sku") or kwargs.get("sku")
+        if not sku:
+            return Response(
+                {"error": "SKU is required."}, status=status.HTTP_400_BAD_REQUEST
+            )
         try:
             item = Item.objects.get(sku=sku)
             if not item.is_active:
@@ -308,7 +312,7 @@ def set_edit_lock_status(request):
         )
 
     edit_lock_status = request.data.get("edit_lock_status", False)
-    admin, created = Admin.objects.get_or_create(id=1)
+    admin = Admin.get_solo()
     admin.edit_lock = edit_lock_status
     admin.save()
     return Response(
@@ -327,6 +331,8 @@ def get_edit_lock_status(request):
         if not (
             request.user.groups.filter(name="managers").exists()
             or request.user.groups.filter(name="owners").exists()
+            or request.user.groups.filter(name="cashiers").exists()
+            or request.user.groups.filter(name="shop_users").exists()
         ):
             return JsonResponse({"detail": "Permission denied."}, status=403)
         edit_lock = Admin.is_edit_locked()
@@ -378,7 +384,11 @@ def dashboard(request):
         or request.user.groups.filter(name="owners").exists()
     ):
         return HttpResponseForbidden("Permission denied.")
-    return render(request, "dashboard.html")
+    return render(
+        request,
+        "dashboard.html",
+        {"can_manage_maintenance": request.user.groups.filter(name="managers").exists()},
+    )
 
 
 # Warehouse View
@@ -387,7 +397,7 @@ def dashboard(request):
 def warehouse(request):
     if not request.user.groups.filter(name="managers").exists():
         return HttpResponseForbidden("Permission denied.")
-    return render(request, "warehouse.html")
+    return render(request, "warehouse.html", {"can_edit_items": True})
 
 
 # Shop View
@@ -398,6 +408,7 @@ def shop(request):
         request.user.groups.filter(name="cashiers").exists()
         or request.user.groups.filter(name="shop_users").exists()
         or request.user.groups.filter(name="managers").exists()
+        or request.user.groups.filter(name="owners").exists()
     ):
         return HttpResponseForbidden("Permission denied.")
     return render(request, "shop.html")
@@ -505,7 +516,7 @@ def transfer_catalog(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def transfer_item(request):
-    if Admin.objects.first().edit_lock:
+    if Admin.is_edit_locked():
         logger.debug("Transfer attempt while update mode is enabled.")
         return Response(
             {
@@ -693,10 +704,10 @@ def app_config(request):
         or request.user.groups.filter(name="owners").exists()
     ):
         return Response({"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN)
-    config = Admin.objects.first()
+    config = Admin.get_solo()
     return Response({
-        "records_per_page": config.records_per_page if config else 25,
-        "allow_upload_deletions": config.allow_upload_deletions if config else False,
+        "records_per_page": config.records_per_page,
+        "allow_upload_deletions": config.allow_upload_deletions,
         # Add other config values here if needed
     })
 
