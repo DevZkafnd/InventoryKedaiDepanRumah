@@ -752,21 +752,24 @@
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('currentDate').textContent = now.toLocaleDateString('id-ID', options);
 
-    // Load user info
+    // Load user info and apply menu visibility based on roles
     function applyMenuVisibility(groups) {
         const setVisible = (selector, visible) => $(selector).toggle(!!visible);
         const isManager = (groups || []).includes('managers');
         const isOwner = (groups || []).includes('owners');
         const isCashier = (groups || []).includes('cashiers') || (groups || []).includes('shop_users');
 
-        setVisible('#menuWarehouse', isManager);
-        setVisible('#menuWaste', isManager || isOwner);
-        setVisible('#menuReports', isManager || isOwner);
-        setVisible('#menuAI', isManager || isOwner);
-        setVisible('#menuDashboard', isManager || isOwner);
+        // Managers: Full access to all features
+        // Owners: Dashboard, Reports, Waste, AI (all read-only)
+        // Cashiers: Shop and Transfer only
 
-        setVisible('#menuShop', isCashier || isManager || isOwner);
-        setVisible('#menuTransfer', isCashier || isManager || isOwner);
+        setVisible('#menuDashboard', isManager || isOwner);
+        setVisible('#menuWarehouse', isManager); // Only managers
+        setVisible('#menuShop', isCashier || isManager); // Cashiers and managers only
+        setVisible('#menuTransfer', isCashier || isManager); // Cashiers and managers only
+        setVisible('#menuReports', isManager || isOwner); // Managers and owners
+        setVisible('#menuWaste', isManager || isOwner); // Managers and owners
+        setVisible('#menuAI', isOwner); // Only owners (for analytics)
     }
 
     function loadUser() {
