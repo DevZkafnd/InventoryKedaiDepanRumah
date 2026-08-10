@@ -1,10 +1,13 @@
 #!/bin/bash
+set -e  # Exit on error
 
-# Install dependencies
+echo "==== Installing Dependencies ===="
 pip install -r requirements.txt
 
-# Collect static files
-python manage.py collectstatic --noinput --clear
+echo "==== Collecting Static Files ===="
+python3.9 manage.py collectstatic --noinput --clear
 
-# Run migrations
-python manage.py migrate --noinput
+echo "==== Running Migrations ===="
+python3.9 manage.py migrate --noinput
+
+echo "==== Build Complete ===="
