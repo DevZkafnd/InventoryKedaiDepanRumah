@@ -21,67 +21,64 @@ function Write-Inst { param($msg) Write-Host " [INSTALL] $msg" -ForegroundColor 
 function Write-Err  { param($msg) Write-Host " [ERROR]   $msg" -ForegroundColor Red }
 function Write-Warn { param($msg) Write-Host " [WARN]    $msg" -ForegroundColor DarkYellow }
 
-# Daftar package yang dibutuhkan: (import_name, pip_package, versi)
-$packages = @(
-    @{ import = "django";        pip = "django==6.0.5" },
-    @{ import = "rest_framework"; pip = "djangorestframework==3.17.1" },
-    @{ import = "dotenv";        pip = "python-dotenv==1.2.1" },
-    @{ import = "axes";          pip = "django-axes==8.3.1" },
-    @{ import = "anymail";       pip = "django-anymail==15.0" },
-    @{ import = "openpyxl";      pip = "openpyxl==3.1.5" },
-    @{ import = "natsort";       pip = "natsort==8.4.0" },
-    @{ import = "pytz";          pip = "pytz==2026.2" },
-    @{ import = "requests";      pip = "requests==2.32.3" }
-)
-
 # Ubah ke direktori script
 Set-Location $PSScriptRoot
+$requirementsFile = Join-Path $PSScriptRoot "requirements.txt"
+
+function Invoke-UvPython {
+    param(
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [string[]]$Arguments
+    )
+
+    & uv run --with-requirements $requirementsFile python @Arguments
+}
 
 Write-Header
 
-# Cek Python
-Write-Info "Memeriksa Python..."
-try {
-    $pyver = python --version 2>&1
-    Write-OK "$pyver ditemukan"
-} catch {
-    Write-Err "Python tidak ditemukan! Install dari https://python.org"
+# Cek requirements file
+if (-not (Test-Path $requirementsFile)) {
+    Write-Err "File requirements.txt tidak ditemukan!"
     Read-Host "Tekan Enter untuk keluar"
     exit 1
 }
 
-# Cek pip
+# Cek uv
+Write-Info "Memeriksa uv..."
 try {
-    pip --version | Out-Null
-    Write-OK "pip ditemukan"
+    $uvver = uv --version 2>&1
+    Write-OK "$uvver ditemukan"
 } catch {
-    Write-Err "pip tidak ditemukan!"
+    Write-Err "uv tidak ditemukan! Install uv terlebih dahulu agar script bisa menjalankan Python 3.14 yang stabil."
+    Read-Host "Tekan Enter untuk keluar"
     exit 1
 }
 
-# Cek & install dependencies
+# Cek Python dari uv
+Write-Info "Menyiapkan Python environment via uv..."
+try {
+    $pyver = Invoke-UvPython --version 2>&1
+    Write-OK "$pyver siap dipakai"
+} catch {
+    Write-Err "Gagal menyiapkan Python via uv."
+    exit 1
+}
+
+# Cek dependencies via uv
 Write-Host ""
 Write-Info "Memeriksa dependencies..."
 Write-Host ""
 
-foreach ($pkg in $packages) {
-    $check = python -c "import $($pkg.import)" 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Inst "Menginstall $($pkg.pip)..."
-        pip install $($pkg.pip) -q
-        if ($LASTEXITCODE -ne 0) {
-            Write-Err "Gagal menginstall $($pkg.pip)"
-            Read-Host "Tekan Enter untuk keluar"
-            exit 1
-        }
-        Write-OK "$($pkg.pip) berhasil diinstall"
-    } else {
-        Write-OK "$($pkg.import) sudah terinstall"
-    }
+Write-Inst "Sinkronisasi environment dari requirements.txt..."
+Invoke-UvPython -c "import django, rest_framework, dotenv, axes, anymail, openpyxl, natsort, pytz, requests"
+if ($LASTEXITCODE -ne 0) {
+    Write-Err "Gagal menyiapkan dependencies dari requirements.txt"
+    Read-Host "Tekan Enter untuk keluar"
+    exit 1
 }
 
 Write-Host ""
-Write-OK "Semua dependencies siap."
+Write-OK "Semua dependencies siap via uv."
 
 # Cek file .env
 Write-Host ""
@@ -97,7 +94,7 @@ if (-not (Test-Path ".env")) {
 # Migrasi database
 Write-Host ""
 Write-Info "Menjalankan migrasi database..."
-python manage.py migrate --run-syncdb
+Invoke-UvPython manage.py migrate --run-syncdb
 if ($LASTEXITCODE -ne 0) {
     Write-Err "Migrasi database gagal!"
     Read-Host "Tekan Enter untuk keluar"
@@ -108,7 +105,7 @@ Write-OK "Database siap"
 # Seed data
 Write-Host ""
 Write-Info "Mengisi data contoh ke database..."
-python seed_data.py
+Invoke-UvPython seed_data.py
 if ($LASTEXITCODE -ne 0) {
     Write-Warn "Seed data gagal, tapi aplikasi tetap bisa dijalankan."
 }
@@ -125,4 +122,4 @@ Write-Host "   Tekan CTRL+C untuk menghentikan server              " -Foreground
 Write-Host " ========================================================" -ForegroundColor Green
 Write-Host ""
 
-python manage.py runserver 8000
+Invoke-UvPython manage.py runserver 8000

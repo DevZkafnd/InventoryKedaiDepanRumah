@@ -28,88 +28,119 @@ python manage.py runserver
 - ✅ Form login muncul
 - ✅ Login berhasil redirect ke `/dashboard/`
 
-## ✅ Pengujian Wajib Skripsi (BAB I & BAB III)
+## ✅ Pengujian Wajib Skripsi (BAB III)
 
-Bagian ini berisi test case yang wajib ada sebagai bukti pengujian untuk fitur keamanan dan kebutuhan sistem yang disebut eksplisit pada skripsi.
+Bagian ini disesuaikan dengan implementasi aktual project agar tabel pengujian di skripsi tidak bertentangan dengan kode. Cakupan pengujian dibawa ke 8 fitur inti: keamanan login, transfer, waste, soft delete, import Excel, RBAC, dan AI quota.
 
-### TC-SEC-AXES-01 — Django Axes Lockout (Brute Force Login)
-**Tujuan:** Membuktikan percobaan login salah berulang memicu lockout.
+### 3.2.4 Pengujian Sistem
 
+Format tabel yang direkomendasikan untuk Word:
+`No | Skenario Pengujian | Hasil yang Diharapkan | Hasil Pengujian | Kesimpulan`
+
+Catatan sinkronisasi dengan kode:
+- Django Axes saat ini memakai `AXES_FAILURE_LIMIT=3` dan `AXES_COOLOFF_TIME=1` dari `.env`, jadi skenario lockout harus mengikuti konfigurasi aktual ini.
+- Fitur waste pada project saat ini adalah **pencatatan waste**, bukan pengurangan stok otomatis.
+- Import Excel hanya dapat dilakukan oleh `managers` dan hanya saat `allow_uploads=true`.
+- AI Assistant hanya dapat diakses oleh grup `managers` dan `owners`.
+
+### Tabel Rekomendasi Hasil Pengujian Black Box
+
+| No | Skenario Pengujian | Hasil yang Diharapkan | Hasil Pengujian | Kesimpulan |
+| --- | --- | --- | --- | --- |
+| 1 | Login gagal berturut-turut hingga melewati batas Django Axes (konfigurasi saat ini: 3 kali) | Sistem menolak login lanjutan dan akun/permintaan masuk status lockout selama masa `cooloff`. | Sesuai / Tidak sesuai | Berhasil / Gagal |
+| 2 | Kasir menambahkan draft transfer lalu submit permintaan transfer barang | Draft transfer berhasil dibuat, lalu status permintaan tersimpan sebagai `ordered=True` dan sistem menampilkan pesan berhasil submit. | Sesuai / Tidak sesuai | Berhasil / Gagal |
+| 3 | Manajer melakukan approve atau cancel terhadap permintaan transfer yang sudah disubmit | Saat approve, transfer diproses dan stok pindah ke data toko. Saat cancel, permintaan transfer dibatalkan. | Sesuai / Tidak sesuai | Berhasil / Gagal |
+| 4 | Manajer mencatat waste barang | Catatan waste baru berhasil tersimpan dan tampil pada halaman/daftar waste. | Sesuai / Tidak sesuai | Berhasil / Gagal |
+| 5 | Manajer menonaktifkan item gudang (soft delete) | Item tidak dihapus permanen dari basis data, tetapi `is_active` menjadi `False` dan item tidak lagi tampil pada daftar stok gudang aktif. | Sesuai / Tidak sesuai | Berhasil / Gagal |
+| 6 | Manajer upload file Excel berisi SKU baru | Sistem memproses file Excel, membuat item baru berbasis SKU, dan SKU baru tampil pada stok gudang. | Sesuai / Tidak sesuai | Berhasil / Gagal |
+| 7 | Kasir mencoba mengakses menu atau URL Kelola Stok Gudang | Sistem menolak akses kasir ke halaman `/warehouse/` dan menampilkan `Permission denied` / `403 Forbidden`. | Sesuai / Tidak sesuai | Berhasil / Gagal |
+| 8 | Pengguna manajer/owner mengirim permintaan AI Assistant melebihi kuota | Setelah kuota habis, sistem mengembalikan `HTTP 429` dengan pesan `Rate limit exceeded`. | Sesuai / Tidak sesuai | Berhasil / Gagal |
+
+### Rincian Eksekusi per Skenario
+
+#### TC-SEC-AXES-01 — Django Axes Lockout
 - Pre-condition:
-  - `AXES_FAILURE_LIMIT` dan `AXES_COOLOFF_TIME` sudah terisi di `.env` (lihat `.env_default`)
+  - `.env` berisi `AXES_FAILURE_LIMIT=3`
+  - `.env` berisi `AXES_COOLOFF_TIME=1`
 - Steps:
-  1. Buka `http://127.0.0.1:8000/accounts/logout/` (pastikan session bersih)
+  1. Buka `http://127.0.0.1:8000/accounts/logout/`
   2. Buka `http://127.0.0.1:8000/accounts/login/`
-  3. Username: `admin`
-  4. Input password salah sebanyak `AXES_FAILURE_LIMIT` kali berturut-turut
-  5. Coba login lagi pakai password benar `admin123`
+  3. Masukkan username valid
+  4. Masukkan password salah sebanyak 3 kali berturut-turut
+  5. Coba login lagi, termasuk dengan password benar, sebelum masa cooloff berakhir
 - Expected:
-  - Percobaan login setelah melewati limit ditolak (umumnya status 429 / lockout)
-  - Selama masa cooloff, login tetap diblok meskipun password benar
-- Evidence:
-  - Screenshot pesan error lockout di halaman login
-  - Log Axes di console server (muncul “AXES: Locking out…”)
+  - Login ditolak karena lockout
+  - Selama masa cooloff, autentikasi tetap diblok
 
-### TC-MNT-01 — Maintenance Mode Mengunci Transfer Kasir
-**Tujuan:** Membuktikan manajer bisa mengunci sementara operasi transfer saat pemeliharaan.
-
+#### TC-TRF-01 — Kasir Submit Transfer
 - Steps:
-  1. Login sebagai manajer (`admin / admin123`)
-  2. Aktifkan maintenance mode via API:
-     - Buka `http://127.0.0.1:8000/api/set_edit_lock_status/` (DRF browsable)
-     - POST body: `{"edit_lock_status": true}`
-  3. Login sebagai kasir (`kasir1 / kasir123`)
-  4. Buka `http://127.0.0.1:8000/transfer/`, coba **Tambah** atau **Submit**
+  1. Login sebagai kasir
+  2. Buka `/transfer/`
+  3. Pilih SKU dan isi jumlah transfer
+  4. Klik `Tambah`
+  5. Klik `Submit`
 - Expected:
-  - Transfer kasir ditolak (403) dengan pesan maintenance
-- Evidence:
-  - Screenshot alert error / response 403
+  - Draft transfer berhasil dibuat
+  - Sistem menyimpan request transfer dan menampilkan pesan `Transfer successfully submitted`
 
-### TC-IMP-01 — Import Excel (Upload Data Massal) Berhasil
-**Tujuan:** Membuktikan manajer bisa upload Excel untuk menambahkan SKU baru.
-
-- Pre-condition:
-  - Konfigurasi `allow_uploads = true` di “Konfigurasi Aplikasi” (Admin config)
+#### TC-TRF-02 — Manajer Approve/Cancel Transfer
 - Steps:
-  1. Login sebagai manajer (`admin / admin123`)
-  2. Siapkan file `.xlsx` dengan sheet **Warehouse Stock** berisi header:
-     - `SKU`, `Description`, `Purchase Price`, `Quantity`, `Expiry Date`
-  3. Upload ke endpoint:
-     - `http://127.0.0.1:8000/api/import_data/`
-  4. Setelah upload sukses, buka `/warehouse/` dan cari SKU baru
+  1. Pastikan sudah ada transfer kasir yang berstatus ordered
+  2. Login sebagai manajer
+  3. Buka `/transfer/`
+  4. Klik tombol approve atau cancel pada salah satu request
 - Expected:
-  - Response 200 (“Data has been processed according to configuration.”)
-  - SKU baru muncul di gudang
-- Evidence:
-  - Screenshot response sukses upload
-  - Screenshot SKU baru tampil di tabel gudang
+  - Approve: transfer selesai diproses
+  - Cancel: transfer dibatalkan
+  - Sistem menampilkan pesan `Transfer action successful`
 
-### TC-AI-RL-01 — AI Rate Limiting (Melebihi Kuota)
-**Tujuan:** Membuktikan sistem menolak request AI ketika melebihi kuota per jam.
-
-- Steps:
-  1. Login sebagai owner atau manajer
-  2. Buka `http://127.0.0.1:8000/api/ai/status/` untuk lihat quota
-  3. Kirim request berulang ke:
-     - `POST http://127.0.0.1:8000/api/ai/ask/`
-     - sampai melewati batas (20/jam)
-- Expected:
-  - Setelah melebihi kuota: HTTP 429 dengan pesan “Rate limit exceeded…”
-- Evidence:
-  - Screenshot response 429
-  - Screenshot `/api/ai/status/` menunjukkan quota berkurang/habis
-
-### TC-EXP-01 — Expiry Date Tersimpan & Tampil
-**Tujuan:** Membuktikan atribut expiry_date pada Item berjalan sesuai class diagram.
-
+#### TC-WST-01 — Pencatatan Waste
 - Steps:
   1. Login sebagai manajer
-  2. Buka `/warehouse/` → Tambah barang baru dengan tanggal kadaluarsa (atau edit barang yang ada)
-  3. Pastikan kolom “Tanggal Kadaluarsa” menampilkan tanggal yang diinput
+  2. Buka `/waste/`
+  3. Pilih SKU, sumber, jumlah, alasan, dan tanggal pencatatan
+  4. Simpan catatan waste
 - Expected:
-  - Tanggal kadaluarsa tersimpan dan tampil di tabel gudang
-- Evidence:
-  - Screenshot item dengan expiry date tampil
+  - Data waste tersimpan melalui endpoint `/api/waste_items/`
+  - Data tampil pada tabel waste
+
+#### TC-ITM-DEL-01 — Soft Delete Item
+- Steps:
+  1. Login sebagai manajer
+  2. Buka `/warehouse/`
+  3. Hapus/nonaktifkan salah satu item
+- Expected:
+  - Item tidak muncul lagi pada daftar item aktif
+  - Secara logika aplikasi item dinonaktifkan, bukan hard delete
+
+#### TC-IMP-01 — Import Excel SKU Baru
+- Pre-condition:
+  - Konfigurasi aplikasi `allow_uploads=true`
+- Steps:
+  1. Login sebagai manajer
+  2. Siapkan file `.xlsx` dengan sheet `Warehouse Stock`
+  3. Pastikan terdapat SKU yang belum ada di sistem
+  4. Upload file melalui `/warehouse/` atau endpoint `/api/import_data/`
+- Expected:
+  - File berhasil diproses
+  - SKU baru dibuat di tabel item
+  - SKU baru tampil di halaman stok gudang
+
+#### TC-RBAC-01 — Kasir Ditolak Mengakses Gudang
+- Steps:
+  1. Login sebagai kasir
+  2. Akses `/warehouse/`
+- Expected:
+  - Sistem menolak akses dengan `403 Forbidden` / `Permission denied`
+
+#### TC-AI-RL-01 — Rate Limiting AI Assistant
+- Steps:
+  1. Login sebagai manajer atau owner
+  2. Buka `/ai-assistant/` atau cek `/api/ai/status/`
+  3. Kirim request berulang ke `/api/ai/ask/` hingga kuota habis
+- Expected:
+  - Sebelum limit: request berhasil
+  - Setelah melewati limit: sistem memberi `HTTP 429` dengan pesan `Rate limit exceeded. Maximum 20 requests per hour.`
 
 ### 4. Test Dashboard (Main Page)
 - URL: `http://127.0.0.1:8000/dashboard/`

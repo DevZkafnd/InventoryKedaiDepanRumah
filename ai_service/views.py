@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.core.cache import cache
 import logging
+import json
 
 from .groq_client import GroqClient
 
@@ -124,14 +125,26 @@ def ai_inventory_insights(request):
                 status=status.HTTP_429_TOO_MANY_REQUESTS
             )
         
+        model_pref = request.data.get('model', 'fast')
+        inventory_context = json.dumps(inventory_data, ensure_ascii=False, indent=2)
+        if len(inventory_context) > 2000:
+            inventory_context = inventory_context[:2000] + "... (data dipotong untuk efisiensi)"
+
+        # Samakan jalur inference dengan fitur "Ask AI Anything":
+        # tetap beri context inventory, tapi gunakan simple_ask() dan model preference yang sama.
         client = GroqClient()
-        insights = client.get_inventory_insights(inventory_data, question)
+        insights = client.simple_ask(
+            question=question,
+            context=f"Data Inventory:\n{inventory_context}",
+            model_preference=model_pref,
+        )
         
         cache.set(cache_key, request_count + 1, 3600)
         
         return Response({
             'question': question,
             'insights': insights,
+            'model': model_pref,
             'requests_remaining': 10 - request_count - 1
         })
         

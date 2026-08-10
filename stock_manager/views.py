@@ -397,7 +397,15 @@ def dashboard(request):
 def warehouse(request):
     if not request.user.groups.filter(name="managers").exists():
         return HttpResponseForbidden("Permission denied.")
-    return render(request, "warehouse.html", {"can_edit_items": True})
+    return render(
+        request,
+        "warehouse.html",
+        {
+            "can_edit_items": True,
+            "can_import_excel": True,
+            "allow_uploads_enabled": Admin.is_allow_updoads(),
+        },
+    )
 
 
 # Shop View
@@ -432,12 +440,18 @@ def transfer(request):
 @ensure_csrf_cookie
 @login_required
 def reports(request):
-    if not (
-        request.user.groups.filter(name="managers").exists()
-        or request.user.groups.filter(name="owners").exists()
-    ):
+    is_manager = request.user.groups.filter(name="managers").exists()
+    is_owner = request.user.groups.filter(name="owners").exists()
+    if not (is_manager or is_owner):
         return HttpResponseForbidden("Permission denied.")
-    return render(request, "reports.html")
+    return render(
+        request,
+        "reports.html",
+        {
+            "can_import_excel": is_manager,
+            "allow_uploads_enabled": Admin.is_allow_updoads(),
+        },
+    )
 
 
 @ensure_csrf_cookie

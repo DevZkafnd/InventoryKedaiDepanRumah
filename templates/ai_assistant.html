@@ -196,7 +196,8 @@ function getInsights() {
                 headers: { 'X-CSRFToken': getCSRFToken() },
                 data: JSON.stringify({
                     inventory_data: inventoryData,
-                    question: question
+                    question: question,
+                    model: 'fast'
                 }),
                 success: function(data) {
                     $('#insightsResult').html(`

@@ -11,6 +11,11 @@
 
 {% block content %}
 <div class="content-area">
+    <div
+        id="reportsPageFlags"
+        data-can-import-excel="{{ can_import_excel|yesno:'true,false' }}"
+        data-allow-uploads-enabled="{{ allow_uploads_enabled|yesno:'true,false' }}"
+    ></div>
     
     <!-- Export Buttons -->
     <div class="card mb-4">
@@ -28,6 +33,38 @@
             </div>
         </div>
     </div>
+
+    {% if can_import_excel %}
+    <div class="card mb-4">
+        <div class="card-header">Import Excel Stok</div>
+        <div class="card-body">
+            <p class="text-muted mb-3">
+                Upload file Excel `.xlsx` untuk pembaruan massal data stok gudang dan stok toko.
+            </p>
+            <div class="d-flex gap-3 flex-wrap align-items-center">
+                <input
+                    type="file"
+                    class="form-control"
+                    id="excelFileInput"
+                    accept=".xlsx"
+                    style="max-width: 360px;"
+                >
+                <button
+                    class="btn"
+                    id="btnImportExcel"
+                    style="background-color: #10b981; color: white;"
+                    onclick="uploadExcelFile()"
+                >
+                    <i class="bi bi-upload me-2"></i>Import Excel
+                </button>
+            </div>
+            <div class="form-text mt-2">
+                Format yang diterima: sheet `Warehouse Stock` dan opsional `Shop Stock`.
+            </div>
+            <div class="mt-3 d-none" id="importExcelAlert"></div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Summary Stats -->
     <div class="row g-3 mb-4">
@@ -125,6 +162,25 @@
 
 {% block extra_js %}
 <script>
+const reportsPageFlags = document.getElementById('reportsPageFlags');
+const canImportExcel = reportsPageFlags?.dataset.canImportExcel === 'true';
+const allowUploadsEnabled = reportsPageFlags?.dataset.allowUploadsEnabled === 'true';
+
+function renderImportAlert(message, type = 'info') {
+    const alertEl = $('#importExcelAlert');
+    if (!alertEl.length) return;
+
+    alertEl
+        .removeClass('d-none alert-success alert-danger alert-warning alert-info')
+        .addClass(`alert alert-${type}`)
+        .text(message);
+}
+
+function setImportButtonState(disabled) {
+    $('#btnImportExcel').prop('disabled', disabled);
+    $('#excelFileInput').prop('disabled', disabled);
+}
+
 function loadReportData() {
     $.ajax({
         url: '/api/items/',
@@ -233,11 +289,64 @@ function downloadReport() {
     window.location.href = '/api/export_data/';
 }
 
+function uploadExcelFile() {
+    if (!canImportExcel) {
+        return;
+    }
+
+    if (!allowUploadsEnabled) {
+        renderImportAlert('Import Excel sedang dinonaktifkan pada konfigurasi aplikasi.', 'warning');
+        return;
+    }
+
+    const fileInput = document.getElementById('excelFileInput');
+    const file = fileInput?.files?.[0];
+
+    if (!file) {
+        renderImportAlert('Pilih file Excel .xlsx terlebih dahulu.', 'warning');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setImportButtonState(true);
+    renderImportAlert('Sedang mengunggah dan memproses file Excel...', 'info');
+
+    $.ajax({
+        url: '/api/import_data/',
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(data) {
+            const skipped = Array.isArray(data.skipped_skus) && data.skipped_skus.length
+                ? ` SKU yang dilewati: ${data.skipped_skus.join(', ')}.`
+                : '';
+            renderImportAlert((data.detail || 'Import Excel berhasil diproses.') + skipped, 'success');
+            if (fileInput) {
+                fileInput.value = '';
+            }
+            loadReportData();
+        },
+        error: function(xhr) {
+            renderImportAlert(xhr.responseJSON?.detail || 'Import Excel gagal diproses.', 'danger');
+        },
+        complete: function() {
+            setImportButtonState(false);
+        }
+    });
+}
+
 function refreshReports() {
     loadReportData();
 }
 
 $(document).ready(function() {
+    if (canImportExcel && !allowUploadsEnabled) {
+        renderImportAlert('Import Excel tersedia untuk manajer, tetapi saat ini dinonaktifkan pada konfigurasi aplikasi.', 'warning');
+    }
     loadReportData();
 });
 </script>

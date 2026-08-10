@@ -29,13 +29,13 @@
             margin-bottom: 28px;
         }
         .brand-logo {
-            width: 72px;
-            height: 72px;
-            margin-bottom: 12px;
+            width: min(240px, 70%);
+            height: auto;
+            margin-bottom: 16px;
             filter: drop-shadow(0 4px 12px rgba(0,0,0,.3));
             transition: transform .5s ease;
         }
-        .brand-logo:hover { transform: rotate(360deg); }
+        .brand-logo:hover { transform: scale(1.03); }
         .brand-name {
             font-size: 1.4rem;
             font-weight: 700;
@@ -150,7 +150,7 @@
 <body>
     <div class="login-wrapper">
         <div class="brand-header">
-            <img src="{% static 'img/logo.svg' %}" alt="Logo Kedai Depan Rumah" class="brand-logo">
+            <img src="{% static 'img/logo-white.png' %}" alt="Logo Kedai Depan Rumah" class="brand-logo">
             <h1 class="brand-name">Kedai Depan Rumah</h1>
             <p class="brand-sub">Sistem Manajemen Inventori</p>
         </div>

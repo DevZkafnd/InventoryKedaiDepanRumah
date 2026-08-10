@@ -7,7 +7,12 @@
 
 {% block content %}
 <div class="content-area">
-    <div id="pageFlags" data-can-edit-items="{{ can_edit_items|yesno:'true,false' }}"></div>
+    <div
+        id="pageFlags"
+        data-can-edit-items="{{ can_edit_items|yesno:'true,false' }}"
+        data-can-import-excel="{{ can_import_excel|yesno:'true,false' }}"
+        data-allow-uploads-enabled="{{ allow_uploads_enabled|yesno:'true,false' }}"
+    ></div>
     <!-- Toolbar -->
     <div class="toolbar mb-4">
         <div class="search-box">
@@ -19,6 +24,23 @@
                 <button class="btn" style="background-color: #10b981; color: white;" onclick="showAddModal()">
                     <i class="bi bi-plus-lg me-2"></i>Tambah Barang
                 </button>
+                <label class="btn btn-outline-dark mb-0">
+                    <i class="bi bi-file-earmark-arrow-up me-2"></i>Pilih File Excel
+                    <input
+                        type="file"
+                        id="excelFileInput"
+                        accept=".xlsx"
+                        hidden
+                        onchange="handleExcelFileSelected()"
+                    >
+                </label>
+                <button
+                    class="btn btn-dark"
+                    id="btnImportExcel"
+                    onclick="uploadExcelFile()"
+                >
+                    <i class="bi bi-upload me-2"></i>Upload Excel
+                </button>
             {% else %}
                 <span class="badge" style="background:#f0f0f0;color:#000;padding:10px 12px;border-radius:10px;">
                     Mode read-only (Owner)
@@ -29,6 +51,15 @@
             </button>
         </div>
     </div>
+
+    {% if can_import_excel %}
+    <div class="mb-4">
+        <div class="alert d-none mb-2" id="importExcelAlert" role="alert"></div>
+        <div class="form-text" id="selectedExcelFileText">
+            Import Excel tersedia di halaman ini. Format yang diterima: sheet `Warehouse Stock` dan opsional `Shop Stock`.
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Table Card -->
     <div class="table-card">
@@ -101,7 +132,10 @@
 
 {% block extra_js %}
 <script>
-const canEditItems = (document.getElementById('pageFlags')?.dataset?.canEditItems === 'true');
+const pageFlags = document.getElementById('pageFlags');
+const canEditItems = pageFlags?.dataset?.canEditItems === 'true';
+const canImportExcel = pageFlags?.dataset?.canImportExcel === 'true';
+const allowUploadsEnabled = pageFlags?.dataset?.allowUploadsEnabled === 'true';
 let warehouseItemsBySku = {};
 let itemModal = null;
 let itemModalMode = 'add';
@@ -113,6 +147,30 @@ function showItemAlert(type, message) {
 
 function clearItemAlert() {
     $('#itemModalAlert').empty();
+}
+
+function renderImportAlert(message, level) {
+    const alertEl = $('#importExcelAlert');
+    if (!alertEl.length) {
+        return;
+    }
+    alertEl
+        .removeClass('d-none alert-success alert-danger alert-warning alert-info')
+        .addClass(`alert-${level}`)
+        .text(message);
+}
+
+function updateSelectedExcelFileText(message) {
+    const textEl = $('#selectedExcelFileText');
+    if (!textEl.length) {
+        return;
+    }
+    textEl.text(message);
+}
+
+function setImportButtonState(disabled) {
+    $('#btnImportExcel').prop('disabled', disabled);
+    $('#excelFileInput').prop('disabled', disabled);
 }
 
 function openItemModal(mode, item) {
@@ -185,6 +243,67 @@ function refreshData() {
     loadWarehouse();
 }
 
+function handleExcelFileSelected() {
+    const fileInput = document.getElementById('excelFileInput');
+    const file = fileInput?.files?.[0];
+    updateSelectedExcelFileText(
+        file
+            ? `File terpilih: ${file.name}`
+            : 'Import Excel tersedia di halaman ini. Format yang diterima: sheet `Warehouse Stock` dan opsional `Shop Stock`.'
+    );
+}
+
+function uploadExcelFile() {
+    if (!canImportExcel) {
+        return;
+    }
+
+    if (!allowUploadsEnabled) {
+        renderImportAlert('Import Excel sedang dinonaktifkan pada konfigurasi aplikasi.', 'warning');
+        return;
+    }
+
+    const fileInput = document.getElementById('excelFileInput');
+    const file = fileInput?.files?.[0];
+
+    if (!file) {
+        renderImportAlert('Pilih file Excel .xlsx terlebih dahulu.', 'warning');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setImportButtonState(true);
+    renderImportAlert('Sedang mengunggah dan memproses file Excel...', 'info');
+
+    $.ajax({
+        url: '/api/import_data/',
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(data) {
+            const skipped = Array.isArray(data.skipped_skus) && data.skipped_skus.length
+                ? ` SKU yang dilewati: ${data.skipped_skus.join(', ')}.`
+                : '';
+            renderImportAlert((data.detail || 'Import Excel berhasil diproses.') + skipped, 'success');
+            if (fileInput) {
+                fileInput.value = '';
+            }
+            updateSelectedExcelFileText('Import selesai. Pilih file lain untuk upload berikutnya.');
+            loadWarehouse();
+        },
+        error: function(xhr) {
+            renderImportAlert(xhr.responseJSON?.detail || 'Import Excel gagal diproses.', 'danger');
+        },
+        complete: function() {
+            setImportButtonState(false);
+        }
+    });
+}
+
 function showAddModal() {
     if (!canEditItems) return;
     openItemModal('add', {});
@@ -248,6 +367,10 @@ function saveItem() {
 $(document).ready(function() {
     itemModal = new bootstrap.Modal(document.getElementById('itemModal'));
     $('#btnSaveItem').on('click', saveItem);
+
+    if (canImportExcel && !allowUploadsEnabled) {
+        renderImportAlert('Import Excel tersedia untuk manajer, tetapi saat ini dinonaktifkan pada konfigurasi aplikasi.', 'warning');
+    }
 
     loadWarehouse();
     
