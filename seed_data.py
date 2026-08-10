@@ -123,7 +123,7 @@ def seed():
             sku=sku,
             defaults={
                 "description": desc,
-                "retail_price": harga,
+                "purchase_price": harga,
                 "quantity": stok,
                 "is_active": True,
             },

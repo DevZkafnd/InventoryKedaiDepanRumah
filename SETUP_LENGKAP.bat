@@ -32,14 +32,22 @@ echo ================================================================
 echo [STEP 1/4] INSTALL DEPENDENCIES
 echo ================================================================
 echo.
-echo [INFO] Menginstall packages dari requirements.txt...
+echo [INFO] Menginstall packages untuk Python 3.14...
 echo.
-pip install -q -r requirements.txt
+
+REM Upgrade pip dulu
+python -m pip install --upgrade pip -q
+
+REM Install dependencies satu per satu untuk menghindari error psycopg2-binary
+pip install -q django==6.0.5 djangorestframework==3.17.1 python-dotenv==1.2.1 django-axes==8.3.1 django-anymail==15.0 openpyxl==3.1.5 natsort==8.4.0 pytz==2026.2 asgiref==3.11.1 sqlparse==0.5.5 requests==2.32.3 dj-database-url==2.2.0 whitenoise==6.8.2 gunicorn==23.0.0
+
+REM Install psycopg3 terpisah
+pip install -q "psycopg[binary]==3.2.3"
 
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo [ERROR] Gagal install dependencies!
-    echo [INFO] Coba install manual dengan: pip install -r requirements.txt
+    echo [INFO] Coba jalankan: .\install_deps_python314.bat
     pause
     exit /b 1
 )
@@ -47,8 +55,8 @@ if %ERRORLEVEL% NEQ 0 (
 echo.
 echo [OK] Dependencies berhasil diinstall!
 
-REM Set DATABASE_URL untuk connect ke NeonTech
-set DATABASE_URL=postgresql://neondb_owner:npg_j8ThFKgdmpw7@ep-orange-wildflower-aztc4bgj.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+REM Set DATABASE_URL untuk connect ke NeonTech (Pooled Connection)
+set DATABASE_URL=postgresql://neondb_owner:npg_j8ThFKgdmpw7@ep-orange-wildflower-aztc4bgj-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
 
 echo.
 echo ================================================================

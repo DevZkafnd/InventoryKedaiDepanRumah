@@ -9,7 +9,7 @@ pytz==2026.2
 asgiref==3.11.1
 sqlparse==0.5.5
 requests==2.32.3
-psycopg[binary]==3.2.3
+psycopg[binary]>=3.2.10
 dj-database-url==2.2.0
 whitenoise==6.8.2
 gunicorn==23.0.0

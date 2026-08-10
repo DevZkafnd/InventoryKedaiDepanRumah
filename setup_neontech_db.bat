@@ -17,8 +17,8 @@ pause
 REM Aktifkan virtual environment
 call .venv314\Scripts\activate.bat
 
-REM Set DATABASE_URL untuk connect ke NeonTech
-set DATABASE_URL=postgresql://neondb_owner:npg_j8ThFKgdmpw7@ep-orange-wildflower-aztc4bgj.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+REM Set DATABASE_URL untuk connect ke NeonTech (Pooled Connection)
+set DATABASE_URL=postgresql://neondb_owner:npg_j8ThFKgdmpw7@ep-orange-wildflower-aztc4bgj-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
 
 echo.
 echo ========================================
