@@ -1,21 +1,81 @@
 # 🔐 Production Users & Security Guide
 
-## ⚠️ SECURITY ALERT
+## ✅ **CORRECT Permission Structure**
 
-User `admin` yang dibuat tadi adalah **Django Superuser** dengan akses **UNLIMITED**!
-
-**Untuk production yang aman**, gunakan user dengan **role spesifik** sesuai kebutuhan.
+Permission structure telah di-fix sesuai requirement!
 
 ---
 
-## 👥 User Roles di Aplikasi Ini
+## 👥 User Roles & Access Matrix
 
-| Role | Group Name | Access Level | Permissions |
-|------|------------|--------------|-------------|
-| **Owner** | `owners` | ⭐⭐⭐⭐⭐ Full | Warehouse + Shop + Reports + Settings |
-| **Admin/Manager** | `managers` | ⭐⭐⭐⭐ High | Warehouse management, Excel import, Reports |
-| **Kasir** | `cashiers` | ⭐⭐ Limited | Shop operations, Transfer items |
-| **Shop User** | `shop_users` | ⭐ Minimal | View shop stock only |
+| Feature | 👑 Owner | 🧑‍💼 Manager | 🧾 Kasir |
+|---------|:--------:|:---------:|:--------:|
+| **Dashboard (Analytics)** | ✅ View | ✅ View | ❌ |
+| **AI Assistant (Analytics)** | ✅ Only | ❌ | ❌ |
+| **Reports (Export)** | ✅ View/Export | ✅ View/Export | ❌ |
+| **Warehouse** | ❌ | ✅ Full | ❌ |
+| **Maintenance Mode** | ❌ | ✅ Only | ❌ |
+| **Waste Input** | ❌ View Only | ✅ Create | ❌ |
+| **Barang Masuk (Import)** | ❌ | ✅ Only | ❌ |
+| **Shop Operations** | ❌ | ✅ Full | ✅ View |
+| **Request Stok (Transfer)** | ❌ | ✅ Full | ✅ Only |
+
+---
+
+## 🎯 Role Descriptions
+
+### 👑 **Owner (Pemilik) - Read-Only Analytics**
+
+**Fungsi**: Pengawas/monitoring dari atas, tidak ikut campur operasional.
+
+**Access**:
+- ✅ **Dashboard** - View analytics & performance metrics
+- ✅ **AI Assistant** - Business insights & analitik AI (EXCLUSIVE untuk owner)
+- ✅ **Reports** - View & export reports untuk analisis
+- ✅ **Waste View** - Lihat data barang rusak/terbuang (read-only)
+- ❌ **Warehouse** - Tidak bisa akses sama sekali
+- ❌ **Shop** - Tidak bisa akses sama sekali
+- ❌ **Input/Edit Data** - Tidak bisa mengubah apa pun
+
+**Security**: Owner tidak bisa mengubah data secara sepihak, hanya bisa memantau.
+
+---
+
+### 🧑‍💼 **Manager (Manajer) - Full Operations**
+
+**Fungsi**: Operator penuh atas operasional & data toko/gudang.
+
+**Access**:
+- ✅ **Dashboard** - View analytics + manage maintenance mode
+- ✅ **Warehouse** - Full CRUD (Create, Read, Update, Delete)
+- ✅ **Maintenance Mode** - Aktivasi/deaktivasi maintenance
+- ✅ **Waste Input** - Input barang rusak/terbuang
+- ✅ **Barang Masuk** - Import Excel, input stok masuk
+- ✅ **Shop Operations** - Manage shop stock
+- ✅ **Request Stok** - Request & approve transfers
+- ✅ **Reports** - View, export, import
+- ❌ **AI Assistant** - Tidak bisa akses (exclusive untuk owner)
+
+**Security**: Manager punya kontrol penuh operasional harian, tapi tidak bisa akses AI analytics owner.
+
+---
+
+### 🧾 **Kasir (Cashier) - Limited Operations**
+
+**Fungsi**: Operasional dasar sehari-hari di kasir/toko.
+
+**Access**:
+- ✅ **Shop** - View shop stock (read-only)
+- ✅ **Request Stok** - Request transfer dari warehouse ke shop
+- ❌ **Dashboard** - Tidak bisa akses
+- ❌ **Warehouse** - Tidak bisa akses
+- ❌ **AI Assistant** - Tidak bisa akses
+- ❌ **Reports** - Tidak bisa akses
+- ❌ **Maintenance Mode** - Tidak bisa akses
+- ❌ **Waste Input** - Tidak bisa akses
+- ❌ **Barang Masuk** - Tidak bisa akses
+
+**Security**: Kasir hanya bisa request stok saat kehabisan barang, tidak berwenang input/edit data lain.
 
 ---
 

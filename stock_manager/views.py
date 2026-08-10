@@ -40,11 +40,9 @@ class ItemViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if not (
-            user.groups.filter(name="managers").exists()
-            or user.groups.filter(name="owners").exists()
-        ):
-            raise PermissionDenied("Permission denied.")
+        # Only managers can access warehouse items API
+        if not user.groups.filter(name="managers").exists():
+            raise PermissionDenied("Permission denied. Warehouse access is for managers only.")
         queryset = Item.objects.filter(is_active=True)
         search_query = self.request.query_params.get("search", None)
         if search_query:
@@ -150,16 +148,16 @@ class ShopItemViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        if user.groups.filter(name="managers").exists() or user.groups.filter(
-            name="owners"
-        ).exists():
+        # Managers and cashiers can view shop items
+        if user.groups.filter(name="managers").exists():
             queryset = ShopItem.objects.all().exclude(item=None)
         elif user.groups.filter(name="cashiers").exists() or user.groups.filter(
             name="shop_users"
         ).exists():
             queryset = ShopItem.objects.filter(shop_user=user).exclude(item=None)
         else:
-            raise PermissionDenied("Permission denied.")
+            # Owners cannot access shop view
+            raise PermissionDenied("Permission denied. Shop access is for managers and cashiers only.")
         search_query = self.request.query_params.get("search", None)
         if search_query:
             queryset = queryset.filter(
@@ -217,12 +215,14 @@ class TransferItemViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        # Only managers and cashiers can see transfers
         if user.groups.filter(name="managers").exists():
             queryset = TransferItem.objects.filter(ordered=True)
-        elif user.groups.filter(name="owners").exists():
-            queryset = TransferItem.objects.all()
-        else:
+        elif user.groups.filter(name="cashiers").exists() or user.groups.filter(name="shop_users").exists():
             queryset = TransferItem.objects.filter(shop_user=user)
+        else:
+            # Owners cannot access transfers
+            raise PermissionDenied("Permission denied. Transfer access is for managers and cashiers only.")
         search_query = self.request.query_params.get("search", None)
         if search_query:
             queryset = queryset.filter(
@@ -279,12 +279,13 @@ class WasteItemViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        # Owners can view (read-only), managers can view and create
         if user.groups.filter(name="managers").exists() or user.groups.filter(
             name="owners"
         ).exists():
             queryset = WasteItem.objects.select_related("item", "shop_user").all()
         else:
-            raise PermissionDenied("Permission denied.")
+            raise PermissionDenied("Permission denied. Waste view is for managers and owners only.")
 
         search_query = self.request.query_params.get("search", None)
         if search_query:
@@ -375,28 +376,40 @@ def post_login_redirect(request):
 @ensure_csrf_cookie
 @login_required
 def dashboard(request):
+    # Redirect cashiers to shop
     if request.user.groups.filter(name="cashiers").exists() or request.user.groups.filter(
         name="shop_users"
     ).exists():
         return redirect("shop")
+    
+    # Allow owners and managers
     if not (
         request.user.groups.filter(name="managers").exists()
         or request.user.groups.filter(name="owners").exists()
     ):
         return HttpResponseForbidden("Permission denied.")
+    
+    # Owners get read-only dashboard, managers can manage maintenance
+    is_owner = request.user.groups.filter(name="owners").exists()
+    is_manager = request.user.groups.filter(name="managers").exists()
+    
     return render(
         request,
         "dashboard.html",
-        {"can_manage_maintenance": request.user.groups.filter(name="managers").exists()},
+        {
+            "can_manage_maintenance": is_manager,  # Only managers
+            "is_read_only": is_owner,  # Owners are read-only
+        },
     )
 
 
-# Warehouse View
+# Warehouse View - ONLY for MANAGERS
 @ensure_csrf_cookie
 @login_required
 def warehouse(request):
+    # Only managers can access warehouse
     if not request.user.groups.filter(name="managers").exists():
-        return HttpResponseForbidden("Permission denied.")
+        return HttpResponseForbidden("Permission denied. Warehouse is for managers only.")
     return render(
         request,
         "warehouse.html",
@@ -408,72 +421,83 @@ def warehouse(request):
     )
 
 
-# Shop View
+# Shop View - Cashiers and Managers only
 @ensure_csrf_cookie
 @login_required
 def shop(request):
+    # Only cashiers and managers can access shop
     if not (
         request.user.groups.filter(name="cashiers").exists()
         or request.user.groups.filter(name="shop_users").exists()
         or request.user.groups.filter(name="managers").exists()
-        or request.user.groups.filter(name="owners").exists()
     ):
-        return HttpResponseForbidden("Permission denied.")
+        return HttpResponseForbidden("Permission denied. Shop is for cashiers and managers only.")
     return render(request, "shop.html")
 
 
-# Transfer View
+# Transfer View - Cashiers and Managers only
 @ensure_csrf_cookie
 @login_required
 def transfer(request):
+    # Only cashiers and managers can request stock transfers
     if not (
         request.user.groups.filter(name="cashiers").exists()
         or request.user.groups.filter(name="shop_users").exists()
         or request.user.groups.filter(name="managers").exists()
-        or request.user.groups.filter(name="owners").exists()
     ):
-        return HttpResponseForbidden("Permission denied.")
+        return HttpResponseForbidden("Permission denied. Transfer is for cashiers and managers only.")
     return render(request, "transfer.html")
 
 
-# Reports View
+# Reports View - Owners (read-only) and Managers (can import)
 @ensure_csrf_cookie
 @login_required
 def reports(request):
     is_manager = request.user.groups.filter(name="managers").exists()
     is_owner = request.user.groups.filter(name="owners").exists()
+    
     if not (is_manager or is_owner):
-        return HttpResponseForbidden("Permission denied.")
+        return HttpResponseForbidden("Permission denied. Reports are for owners and managers only.")
+    
     return render(
         request,
         "reports.html",
         {
-            "can_import_excel": is_manager,
+            "can_import_excel": is_manager,  # Only managers can import
+            "is_read_only": is_owner,  # Owners are read-only
             "allow_uploads_enabled": Admin.is_allow_updoads(),
         },
     )
 
 
+# Waste View - Owners (read-only) and Managers (can create)
 @ensure_csrf_cookie
 @login_required
 def waste(request):
     user = request.user
     is_manager = user.groups.filter(name="managers").exists()
     is_owner = user.groups.filter(name="owners").exists()
+    
     if not (is_manager or is_owner):
-        return HttpResponseForbidden("Permission denied.")
-    return render(request, "waste.html", {"can_create_waste": is_manager})
+        return HttpResponseForbidden("Permission denied. Waste view is for owners and managers only.")
+    
+    return render(
+        request,
+        "waste.html",
+        {
+            "can_create_waste": is_manager,  # Only managers can create
+            "is_read_only": is_owner,  # Owners are read-only
+        }
+    )
 
 
-# AI Assistant View
+# AI Assistant View - ONLY for OWNERS (analytics)
 @ensure_csrf_cookie
 @login_required
 def ai_assistant(request):
-    if not (
-        request.user.groups.filter(name="managers").exists()
-        or request.user.groups.filter(name="owners").exists()
-    ):
-        return HttpResponseForbidden("Permission denied.")
+    # Only owners can access AI analytics
+    if not request.user.groups.filter(name="owners").exists():
+        return HttpResponseForbidden("Permission denied. AI Assistant is for owners only.")
     return render(request, "ai_assistant.html")
 
 
@@ -731,6 +755,7 @@ def app_config(request):
 def export_data_excel(request):
     """
     Export data as Excel for download.
+    Owners and managers can export for analytics/reporting.
     """
     if not (
         request.user.groups.filter(name="managers").exists()
@@ -738,7 +763,8 @@ def export_data_excel(request):
     ):
         logger.debug("Permission denied: user is not in owners or managers group.")
         return Response(
-            {"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN
+            {"detail": "Permission denied. Export is for owners and managers only."}, 
+            status=status.HTTP_403_FORBIDDEN
         )
     return SpreadsheetTools(request).generate_excel_response()
 
@@ -748,13 +774,15 @@ def export_data_excel(request):
 def import_data_excel(request):
     """
     Import data from an uploaded Excel file.
+    Only managers can import/modify data.
     """
     # Only allow managers to perform the upload.
     if not request.user.groups.filter(name="managers").exists():
         logger.debug("Permission denied: user is not in managers group.")
         return Response(
-            {"detail": "Permission denied."}, status=status.HTTP_403_FORBIDDEN
-        )
+            {"detail": "Permission denied. Import is for managers only."}, 
+            status=status.HTTP_403_FORBIDDEN
+        )        )
     if not Admin.is_allow_updoads():
         logger.debug("Attempted upload when disabled.")
         return Response(
