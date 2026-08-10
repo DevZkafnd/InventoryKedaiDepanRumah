@@ -782,7 +782,7 @@ def import_data_excel(request):
         return Response(
             {"detail": "Permission denied. Import is for managers only."}, 
             status=status.HTTP_403_FORBIDDEN
-        )        )
+        )
     if not Admin.is_allow_updoads():
         logger.debug("Attempted upload when disabled.")
         return Response(
