@@ -1,13 +1,12 @@
 #!/bin/bash
-set -e  # Exit on error
+set -e
 
-echo "==== Installing Dependencies with uv ===="
-uv pip install -r requirements.txt --system
+echo "==== Build Started ===="
 
-echo "==== Collecting Static Files ===="
-python3.9 manage.py collectstatic --noinput --clear
+echo "📂 Collecting Static Files..."
+python3.12 manage.py collectstatic --noinput --clear || python3 manage.py collectstatic --noinput --clear
 
-echo "==== Running Migrations ===="
-python3.9 manage.py migrate --noinput
+echo "🗄️ Running Migrations..."
+python3.12 manage.py migrate --noinput || python3 manage.py migrate --noinput
 
-echo "==== Build Complete ===="
+echo "✅ Build Complete!"
