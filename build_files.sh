@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e  # Exit on error
 
-echo "==== Installing Dependencies ===="
-pip install -r requirements.txt
+echo "==== Installing Dependencies with uv ===="
+uv pip install -r requirements.txt --system
 
 echo "==== Collecting Static Files ===="
 python3.9 manage.py collectstatic --noinput --clear
