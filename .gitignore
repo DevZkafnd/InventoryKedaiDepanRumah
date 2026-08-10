@@ -32,3 +32,4 @@ env/
 venv/
 .venv/
 .venv314/
+VERCEL_ENV_SECRETS.txt

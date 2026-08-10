@@ -1,0 +1,47 @@
+========================================
+CHECKLIST ENVIRONMENT VARIABLES VERCEL
+========================================
+
+WAJIB (7 Variables):
+--------------------
+[ ] 1. DJANGO_SECRET_KEY = bbr+#nr)bxx^rgno4ki@=ecu*6bl^i-3^cu*v+=rqa6o0^1#h+
+[ ] 2. DJANGO_DEBUG = False
+[ ] 3. DJANGO_ALLOWED_HOSTS = .vercel.app
+[ ] 4. DATABASE_URL = postgresql://neondb_owner:npg_j8ThFKgdmpw7@ep-orange-wildflower-aztc4bgj.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+[ ] 5. AXES_FAILURE_LIMIT = 5
+[ ] 6. AXES_COOLOFF_TIME = 30
+[ ] 7. ALLOW_PW_CHANGE = True
+
+OPTIONAL - AI Assistant:
+------------------------
+Pilih salah satu option:
+
+OPTION A - Groq Only (Lebih Cepat):
+[ ] 8. AI_PROVIDER = groq
+[ ] 9. GROQ_API_KEY = (copy dari file .env lokal)
+
+OPTION B - Gemini Only:
+[ ] 8. AI_PROVIDER = gemini
+[ ] 9. GEMINI_API_KEY = (copy dari file .env lokal)
+
+OPTION C - Keduanya (Recommended):
+[ ] 8. AI_PROVIDER = groq (bisa ganti ke gemini kapan saja)
+[ ] 9. GROQ_API_KEY = (copy dari file .env lokal)
+[ ] 10. GEMINI_API_KEY = (copy dari file .env lokal)
+
+========================================
+TOTAL: 
+- Minimal: 7 variables (tanpa AI)
+- Dengan AI: 9-10 variables
+========================================
+
+Setelah selesai input semua:
+[ ] Klik "Deploy"
+[ ] Tunggu 3-5 menit
+[ ] Test website
+[ ] Create superuser dengan create_superuser.bat
+[ ] Login ke /admin
+
+========================================
+DONE! 🎉
+========================================
