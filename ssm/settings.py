@@ -95,7 +95,7 @@ WSGI_APPLICATION = "ssm.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / os.environ.get("DB_NAME"),
+        "NAME": BASE_DIR / os.environ.get("DB_NAME", "db.sqlite3"),
     }
 }
 
